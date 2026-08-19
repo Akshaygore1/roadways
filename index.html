@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Desi Truck Simulator - Scenic Indian Highway (NH 44)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #12161a;
+      font-family: 'Outfit', sans-serif;
+      color: #fff;
+    }
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    #canvas-container canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Minimal Slow Roads HUD */
+    .hud-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px 32px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .game-brand {
+      pointer-events: auto;
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #ff9933, #ffffff, #138808);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-sub {
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .top-controls {
+      display: flex;
+      gap: 12px;
+      pointer-events: auto;
+    }
+
+    .hud-btn {
+      background: rgba(20, 24, 30, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+      outline: none;
+      user-select: none;
+    }
+    .hud-btn:focus, .touch-btn:focus {
+      outline: none;
+    }
+    .hud-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px);
+    }
+    .hud-btn:active {
+      transform: translateY(1px);
+    }
+    .hud-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hud-btn .lucide {
+      width: 15px;
+      height: 15px;
+      stroke-width: 2.2px;
+    }
+
+    /* Bottom HUD section */
+    .bottom-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .speed-cluster {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .speed-val {
+      font-size: 56px;
+      font-weight: 700;
+      letter-spacing: -2px;
+      color: #ffffff;
+      text-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      line-height: 1;
+    }
+    .speed-unit {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .metrics-box {
+      background: rgba(18, 22, 28, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .metric-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.45);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .metric-label .lucide {
+      width: 12px;
+      height: 12px;
+      stroke-width: 2px;
+      opacity: 0.8;
+    }
+    .metric-val {
+      font-size: 16px;
+      font-weight: 600;
+      color: #ffb03a;
+      margin-top: 2px;
+    }
+
+    .controls-hint {
+      background: rgba(18, 22, 28, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.6;
+    }
+    .key-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      font-weight: 600;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      margin: 0 2px;
+    }
+
+    /* Onscreen touch controls for mobile/tablet */
+    .touch-controls {
+      display: none;
+      position: absolute;
+      bottom: 24px;
+      left: 0;
+      right: 0;
+      padding: 0 24px;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 20;
+    }
+    @media (max-width: 768px) {
+      .touch-controls {
+        display: flex;
+      }
+      .controls-hint {
+        display: none;
+      }
+      .speed-val {
+        font-size: 40px;
+      }
+      .hud-overlay {
+        padding: 16px;
+      }
+    }
+    .touch-dpad, .touch-pedals {
+      display: flex;
+      gap: 12px;
+      pointer-events: auto;
+    }
+    .touch-btn {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.18);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+    .touch-btn:active {
+      background: rgba(255, 176, 58, 0.6);
+      border-color: #ffb03a;
+    }
+
+    .touch-btn .lucide {
+      width: 26px;
+      height: 26px;
+      stroke-width: 2.5px;
+    }
+
+    .autopilot-indicator {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(19, 136, 8, 0.35);
+      border: 1px solid rgba(19, 136, 8, 0.7);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      padding: 8px 20px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+      z-index: 15;
+      animation: autopilot-pulse 2s ease-in-out infinite;
+    }
+    .autopilot-indicator .lucide {
+      width: 16px;
+      height: 16px;
+    }
+    @keyframes autopilot-pulse {
+      0%, 100% { opacity: 0.85; }
+      50% { opacity: 1; }
+    }
+    .hud-btn.autopilot-active {
+      background: rgba(19, 136, 8, 0.5);
+      border-color: rgba(19, 136, 8, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div class="hud-overlay">
+    <div class="top-bar">
+      <div class="game-brand">
+        <div class="brand-title">DESI TRUCK</div>
+        <div class="brand-sub">HORN OK PLEASE &bull; NH 44</div>
+      </div>
+
+      <div class="top-controls">
+        <button id="btn-horn" class="hud-btn" tabindex="-1" title="Blow Pressure Horn (H)">
+          <span class="hud-icon" id="horn-icon"><i data-lucide="volume-2"></i></span> Horn (H)
+        </button>
+        <button id="btn-theme" class="hud-btn" tabindex="-1" title="Toggle Lighting Preset">
+          <span class="hud-icon" id="theme-icon"><i data-lucide="sun"></i></span> <span id="theme-text">Golden Hour</span>
+        </button>
+        <button id="btn-camera" class="hud-btn" tabindex="-1" title="Switch Camera (C)">
+          <span class="hud-icon" id="cam-icon"><i data-lucide="camera"></i></span> <span id="cam-text">Chase Cam</span>
+        </button>
+        <button id="btn-reset" class="hud-btn" tabindex="-1" title="Reset Truck Position (R)">
+          <span class="hud-icon" id="reset-icon"><i data-lucide="rotate-ccw"></i></span> Reset
+        </button>
+        <button id="btn-autopilot" class="hud-btn" tabindex="-1" title="Toggle Autopilot (P)">
+          <span class="hud-icon" id="autopilot-btn-icon"><i data-lucide="navigation"></i></span> Autopilot
+        </button>
+      </div>
+    </div>
+
+    <div id="autopilot-indicator" class="autopilot-indicator" style="display: none;">
+      <span class="hud-icon"><i data-lucide="navigation"></i></span> AUTOPILOT ACTIVE <span class="key-badge">P</span> to disengage
+    </div>
+
+    <div class="bottom-bar">
+      <div class="speed-cluster">
+        <span id="hud-speed" class="speed-val">0</span>
+        <span class="speed-unit">KM/H</span>
+      </div>
+
+      <div class="metrics-box">
+        <div class="metric-item">
+          <span class="metric-label"><i data-lucide="milestone"></i> Milestone</span>
+          <span id="hud-distance" class="metric-val">0.0 KM</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label"><i data-lucide="route"></i> Highway</span>
+          <span id="hud-nh" class="metric-val">NH 44</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label"><i data-lucide="activity"></i> FPS</span>
+          <span id="hud-fps" class="metric-val">60</span>
+        </div>
+      </div>
+
+      <div class="controls-hint">
+        <div><span class="key-badge">H</span> Pressure Horn &bull; <span class="key-badge">W</span> / <span class="key-badge">↑</span> Drive &bull; <span class="key-badge">S</span> / <span class="key-badge">↓</span> Brake</div>
+        <div><span class="key-badge">A</span> <span class="key-badge">D</span> / <span class="key-badge">←</span> <span class="key-badge">→</span> Steer &bull; <span class="key-badge">SPACE</span> Handbrake</div>
+        <div><span class="key-badge">C</span> Switch Camera &bull; <span class="key-badge">R</span> Reset &bull; <span class="key-badge">P</span> Autopilot</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="touch-controls">
+    <div class="touch-dpad">
+      <button class="touch-btn" id="btn-left" tabindex="-1"><i data-lucide="chevron-left"></i></button>
+      <button class="touch-btn" id="btn-right" tabindex="-1"><i data-lucide="chevron-right"></i></button>
+    </div>
+    <div class="touch-pedals">
+      <button class="touch-btn" id="btn-brake" tabindex="-1"><i data-lucide="chevron-down"></i></button>
+      <button class="touch-btn" id="btn-gas" tabindex="-1"><i data-lucide="chevron-up"></i></button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

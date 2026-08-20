@@ -84,7 +84,7 @@ export class CarController {
     }
 
     // 1. Steering computation
-    const targetSteer = -effectiveSteering * CONFIG.physics.maxSteerAngle;
+    const targetSteer = effectiveSteering * CONFIG.physics.maxSteerAngle;
     this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1, dt * CONFIG.physics.steerSpeed);
 
     // 2. Acceleration / Braking
@@ -126,7 +126,8 @@ export class CarController {
     // 3. Angular turning based on speed & steering angle
     const speedRatio = Math.min(1, Math.abs(forwardSpeed) / (CONFIG.physics.maxSpeed / 3.6));
     const turnSensitivity = (1.0 - speedRatio * 0.45); // high speed stability
-    const turnRate = (forwardSpeed >= 0 ? 1 : -1) * (this.steerAngle * turnSensitivity * (Math.abs(forwardSpeed) * 0.14));
+    // With camera facing +Z along the road, turning right requires negative yaw rate (decreasing yaw)
+    const turnRate = (forwardSpeed >= 0 ? -1 : 1) * (this.steerAngle * turnSensitivity * (Math.abs(forwardSpeed) * 0.14));
     this.yaw += turnRate * dt;
 
     // Recalculate forward vector from yaw
@@ -151,39 +152,50 @@ export class CarController {
     this.distanceTraveledKm += (movedMeters / 1000.0);
     this.speedKmh = forwardSpeed * 3.6;
 
-    // 6. Ground & Road Contact / Spring-Damper Suspension
-    const groundY = this.roadManager.getGroundHeight(this.position.x, this.position.z);
-    const targetY = groundY; // Tires bottom contact patch is at local y = 0.0
-
-    // Spring-damper suspension model: F = -k * x - c * v
-    const suspDisplacement = this.position.y - targetY;
-    const springForce = -CONFIG.physics.suspensionStiffness * suspDisplacement;
-    const dampingForce = -CONFIG.physics.suspensionDamping * this.verticalVelocity;
-
-    this.verticalVelocity += (springForce + dampingForce) * dt;
-    this.position.y += this.verticalVelocity * dt;
-
-    // Hard floor constraint — never sink below ground
-    if (this.position.y < targetY) {
-      this.position.y = targetY;
-      this.verticalVelocity = 0;
-    }
-
-    // Check if car is off-road
+    // 6. Ground & Road Contact / Smooth Heavy Suspension
     const roadInfo = this.roadManager.getClosestRoadSample(this.position);
     this.isOffRoad = Math.abs(roadInfo.distanceToCenter) > (CONFIG.road.width / 2);
 
-    // Calculate pitch from front/rear axle slope (wheelbase is 3.8m: front at +1.9m, rear at -1.9m)
+    const groundY = this.roadManager.getGroundHeight(this.position.x, this.position.z);
+    const targetY = groundY; // Tires bottom contact patch is at local y = 0.0
+
+    // Smooth critical-damped suspension tracking
+    const heightDiff = targetY - this.position.y;
+    this.verticalVelocity += (heightDiff * CONFIG.physics.suspensionStiffness - this.verticalVelocity * CONFIG.physics.suspensionDamping) * dt;
+    this.position.y += this.verticalVelocity * dt;
+
+    // Soft ground adherence: smoothly converge to ground if lagging
+    if (this.position.y < targetY) {
+      this.position.y = THREE.MathUtils.lerp(this.position.y, targetY, Math.min(1, dt * 25.0));
+      if (this.verticalVelocity < 0) {
+        this.verticalVelocity *= 0.5;
+      }
+    }
+
+    // Calculate pitch from continuous front/rear axle slope (wheelbase is 3.8m: front at +1.9m, rear at -1.9m)
     const frontProbe = this.position.clone().addScaledVector(this.forward, 1.9);
     const rearProbe = this.position.clone().addScaledVector(this.forward, -1.9);
     const frontGroundY = this.roadManager.getGroundHeight(frontProbe.x, frontProbe.z);
     const rearGroundY = this.roadManager.getGroundHeight(rearProbe.x, rearProbe.z);
-    const targetPitch = -Math.atan2(frontGroundY - rearGroundY, 3.8);
-    this.pitch += (targetPitch - this.pitch) * Math.min(1, dt * 18.0);
+    const roadPitch = -Math.atan2(frontGroundY - rearGroundY, 3.8);
 
-    // Body roll from cornering + lateral road slope
-    const targetRoll = -turnRate * 0.15;
-    this.roll += (targetRoll - this.roll) * Math.min(1, dt * 14.0);
+    // Dynamic weight transfer pitch during acceleration & braking
+    const weightTransferPitch = (effectiveThrottle > 0.05 ? -0.012 * effectiveThrottle : 0) + (isBraking ? 0.025 : 0);
+    const targetPitch = THREE.MathUtils.clamp(roadPitch + weightTransferPitch, -0.35, 0.35);
+    this.pitch += (targetPitch - this.pitch) * Math.min(1, dt * 10.0);
+
+    // Body roll from cornering + lateral road camber/banking slope (track width 2.4m)
+    // In coordinate frame facing +Z, Screen Right is world -X and Screen Left is world +X
+    const rightDir = new THREE.Vector3(-this.forward.z, 0, this.forward.x);
+    const leftProbe = this.position.clone().addScaledVector(rightDir, -1.2);
+    const rightProbe = this.position.clone().addScaledVector(rightDir, 1.2);
+    const leftGroundY = this.roadManager.getGroundHeight(leftProbe.x, leftProbe.z);
+    const rightGroundY = this.roadManager.getGroundHeight(rightProbe.x, rightProbe.z);
+    const roadRoll = Math.atan2(leftGroundY - rightGroundY, 2.4);
+
+    // Centrifugal roll: steering right (steerAngle > 0) causes truck body to lean left (targetRoll < 0)
+    const targetRoll = THREE.MathUtils.clamp(-this.steerAngle * (speedRatio * 0.14) + roadRoll, -0.22, 0.22);
+    this.roll += (targetRoll - this.roll) * Math.min(1, dt * 10.0);
 
     // 7. Update 3D visual transforms
     this.updateTransform();

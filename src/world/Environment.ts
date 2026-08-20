@@ -55,7 +55,7 @@ export class Environment {
     if (theme === 'golden') {
       this.scene.background = new THREE.Color(0xf6d7aa);
       (this.scene.fog as THREE.FogExp2).color.setHex(0xf4d3a4);
-      (this.scene.fog as THREE.FogExp2).density = 0.003;
+      (this.scene.fog as THREE.FogExp2).density = 0.0022;
 
       this.dirLight.color.setHex(0xffecc2);
       this.dirLight.intensity = 2.8;
@@ -67,7 +67,7 @@ export class Environment {
     } else if (theme === 'monsoon') {
       this.scene.background = new THREE.Color(0xb2c8c4);
       (this.scene.fog as THREE.FogExp2).color.setHex(0xb0c5c1);
-      (this.scene.fog as THREE.FogExp2).density = 0.004;
+      (this.scene.fog as THREE.FogExp2).density = 0.0028;
 
       this.dirLight.color.setHex(0xdcebe8);
       this.dirLight.intensity = 2.2;
@@ -79,7 +79,7 @@ export class Environment {
     } else if (theme === 'night') {
       this.scene.background = new THREE.Color(0x111a2e);
       (this.scene.fog as THREE.FogExp2).color.setHex(0x111a2e);
-      (this.scene.fog as THREE.FogExp2).density = 0.002;
+      (this.scene.fog as THREE.FogExp2).density = 0.0018;
 
       this.dirLight.color.setHex(0x6d8fc7);
       this.dirLight.intensity = 1.1;

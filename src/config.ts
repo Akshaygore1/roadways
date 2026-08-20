@@ -41,7 +41,7 @@ export const CONFIG: GameConfig = {
     activeChunksAhead: 5,    // How far ahead road is generated (~1.1 km)
     activeChunksBehind: 2,   // Chunks retained behind before recycling
     maxCurveAngle: 0.35,     // Curvature intensity
-    maxElevationChange: 8.0  // Gentler rolling hills to prevent floating on crests
+    maxElevationChange: 5.0  // Gentler rolling hills for smooth highway grade
   },
   physics: {
     maxSpeed: 115,           // km/h (heavy diesel engine)
@@ -52,8 +52,8 @@ export const CONFIG: GameConfig = {
     maxSteerAngle: 0.52,     // radians
     friction: 0.985,
     driftFriction: 0.94,
-    suspensionStiffness: 75.0,   // Spring constant for spring-damper model
-    suspensionDamping: 20.0,     // Damping coefficient (heavy loaded feel)
+    suspensionStiffness: 60.0,   // Spring constant for spring-damper model
+    suspensionDamping: 18.0,     // Damping coefficient (smooth highway feel)
     gravity: 28.0
   },
   camera: {

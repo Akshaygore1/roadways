@@ -40,10 +40,12 @@ export class Autopilot {
     while (yawError < -Math.PI) yawError += 2 * Math.PI;
 
     // Add lateral offset correction: steer toward center
-    const lateralCorrection = -aheadInfo.distanceToCenter * 0.06;
+    // distanceToCenter > 0 means car is to Screen Left (+X) of centerline, so steer right (+steering)
+    const lateralCorrection = aheadInfo.distanceToCenter * 0.06;
 
     // Map yaw error + lateral correction to [-1, 1] steering
-    const rawSteer = (yawError * 2.0) + lateralCorrection;
+    // When desiredYaw < carYaw (road curves right), we output positive steering (+steering)
+    const rawSteer = -(yawError * 2.0) + lateralCorrection;
     const steering = Math.max(-1, Math.min(1, rawSteer));
 
     // 4. Throttle: simple P-controller toward cruise speed

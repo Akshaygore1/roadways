@@ -1,12 +1,16 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config';
 import { TextureGenerator } from './Textures';
+import { TerrainUtils } from './TerrainUtils';
 
 export interface RoadSample {
   point: THREE.Vector3;
   tangent: THREE.Vector3;
   binormal: THREE.Vector3;
+  normal: THREE.Vector3;
   elevation: number;
+  banking: number;     // Superelevation in radians
+  curvature: number;   // Curvature kappa
 }
 
 export class SplineChunk {
@@ -28,244 +32,395 @@ export class SplineChunk {
 
   constructor(
     chunkIndex: number,
-    startPoint: THREE.Vector3,
-    startTangent: THREE.Vector3,
+    controlPoints: THREE.Vector3[],
     noise2D: (x: number, y: number) => number,
     roadMaterial: THREE.Material,
     shoulderMaterial: THREE.Material,
     terrainMaterial: THREE.Material
   ) {
     this.chunkIndex = chunkIndex;
-    this.startPoint = startPoint.clone();
-    this.startTangent = startTangent.clone().normalize();
     this.group = new THREE.Group();
     this.length = CONFIG.road.chunkLength;
 
-    // 1. Generate spline control points
-    const controlPoints = this.generateControlPoints(noise2D);
+    // 1. Build curve with 10 padded control points (C1/C2 continuous across all chunk boundaries)
     this.curve = new THREE.CatmullRomCurve3(controlPoints, false, 'centripetal', 0.5);
 
-    this.endPoint = controlPoints[controlPoints.length - 1].clone();
-    this.endTangent = this.curve.getTangent(1.0).normalize();
-
-    // 2. Pre-sample spline
+    // 2. Pre-sample spline strictly between CP_0 (u = 2/9) and CP_5 (u = 7/9)
     this.sampleSpline();
 
-    // 3. Build geometries
-    this.buildRoadMesh(roadMaterial, shoulderMaterial);
+    this.startPoint = this.samples[0].point.clone();
+    this.endPoint = this.samples[this.samples.length - 1].point.clone();
+    this.startTangent = this.samples[0].tangent.clone();
+    this.endTangent = this.samples[this.samples.length - 1].tangent.clone();
+
+    // 3. Build engineered geometries
+    this.buildRoadMesh(roadMaterial);
+    this.buildShoulderMesh(shoulderMaterial);
     this.buildTerrainMesh(noise2D, terrainMaterial);
-    this.buildProps();
+    this.buildProps(noise2D);
 
     this.group.add(this.propsGroup);
-  }
-
-  private generateControlPoints(noise2D: (x: number, y: number) => number): THREE.Vector3[] {
-    const points: THREE.Vector3[] = [];
-    const numPoints = 6;
-    const segLength = this.length / (numPoints - 1);
-
-    let currentPos = this.startPoint.clone();
-    let currentDir = this.startTangent.clone();
-    points.push(currentPos.clone());
-
-    for (let i = 1; i < numPoints; i++) {
-      const globalProgress = (this.chunkIndex * (numPoints - 1) + i) * 0.08;
-      
-      // Horizontal curvature from noise
-      const curveNoise = noise2D(globalProgress * 0.6, 10.5);
-      const angle = curveNoise * CONFIG.road.maxCurveAngle;
-      
-      // Rotate direction slightly
-      const rot = new THREE.Matrix4().makeRotationY(angle * 0.4);
-      currentDir.applyMatrix4(rot).normalize();
-
-      // Elevation variation from secondary noise
-      const elevNoise = noise2D(globalProgress * 0.4, 42.0);
-      const targetY = (elevNoise * CONFIG.road.maxElevationChange) + Math.sin(globalProgress * 0.3) * 2.5;
-
-      const nextPos = currentPos.clone().add(currentDir.clone().multiplyScalar(segLength));
-      nextPos.y = targetY;
-
-      points.push(nextPos);
-      currentPos = nextPos;
-    }
-
-    return points;
   }
 
   private sampleSpline(): void {
     const steps = CONFIG.road.segmentCount;
     this.samples = [];
-    const up = new THREE.Vector3(0, 1, 0);
+    const worldUp = new THREE.Vector3(0, 1, 0);
+
+    // With 10 control points (indices 0..9, 9 curve segments):
+    // CP_0 is at index 2 (u = 2/9), CP_5 is at index 7 (u = 7/9)
+    const uStart = 2.0 / 9.0;
+    const uEnd = 7.0 / 9.0;
+    const uSpan = uEnd - uStart; // 5/9
 
     for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const point = this.curve.getPoint(t);
-      const tangent = this.curve.getTangent(t).normalize();
-      
-      // Binormal is perpendicular to tangent and world up
-      const binormal = new THREE.Vector3().crossVectors(tangent, up).normalize();
+      const alpha = i / steps;
+      const u = uStart + alpha * uSpan;
+
+      const point = this.curve.getPoint(u);
+      const tangent = this.curve.getTangent(u).normalize();
+
+      // Instantaneous curvature kappa evaluated symmetrically
+      const dt = 0.005;
+      const uPrev = u - dt;
+      const uNext = u + dt;
+      const tanPrev = this.curve.getTangent(uPrev).normalize();
+      const tanNext = this.curve.getTangent(uNext).normalize();
+
+      // Cross product gives turning direction and magnitude
+      const turnCross = new THREE.Vector3().crossVectors(tanPrev, tanNext);
+      const curvature = turnCross.y / (dt * 2.0);
+
+      // Banking angle: tilt road into corner (up to ~4.5 degrees)
+      const banking = THREE.MathUtils.clamp(-curvature * 2.4, -0.075, 0.075);
+
+      // Unbanked horizontal binormal pointing right (+X) and normal pointing UP (+Y)
+      const baseBinormal = new THREE.Vector3().crossVectors(worldUp, tangent).normalize();
+      const baseNormal = new THREE.Vector3().crossVectors(tangent, baseBinormal).normalize();
+
+      // Banked binormal and normal vectors
+      const cosB = Math.cos(banking);
+      const sinB = Math.sin(banking);
+
+      const binormal = baseBinormal.clone().multiplyScalar(cosB).addScaledVector(baseNormal, sinB).normalize();
+      const normal = baseNormal.clone().multiplyScalar(cosB).addScaledVector(baseBinormal, -sinB).normalize();
 
       this.samples.push({
         point,
         tangent,
         binormal,
-        elevation: point.y
+        normal,
+        elevation: point.y,
+        banking,
+        curvature
       });
     }
   }
 
-  private buildRoadMesh(roadMat: THREE.Material, shoulderMat: THREE.Material): void {
+  /**
+   * Builds high-fidelity 3D asphalt road mesh with camber crown (+0.06m) and edge bevel drops (-0.04m).
+   */
+  private buildRoadMesh(roadMat: THREE.Material): void {
     const steps = this.samples.length;
-    const halfWidth = CONFIG.road.width / 2;
-    const shoulderW = CONFIG.road.shoulderWidth;
+    const halfWidth = CONFIG.road.width * 0.5;
 
-    // --- Main Asphalt Road ---
+    // Cross-section offsets (lateral offset factor, height offset, u-coord)
+    // 7 cross-section profile vertices per step for smooth parabolic camber and crisp bevels
+    const profile = [
+      { offset: -halfWidth,           heightOffset: -0.04, u: 0.00 }, // Left edge bevel bottom
+      { offset: -halfWidth + 0.08,    heightOffset:  0.00, u: 0.04 }, // Left edge solid line
+      { offset: -halfWidth * 0.5,     heightOffset:  0.045, u: 0.28 }, // Left wheel track
+      { offset: 0.0,                  heightOffset:  0.06, u: 0.50 }, // Center crown
+      { offset:  halfWidth * 0.5,     heightOffset:  0.045, u: 0.72 }, // Right wheel track
+      { offset:  halfWidth - 0.08,    heightOffset:  0.00, u: 0.96 }, // Right edge solid line
+      { offset:  halfWidth,           heightOffset: -0.04, u: 1.00 }  // Right edge bevel bottom
+    ];
+
+    const numCols = profile.length;
     const roadGeo = new THREE.BufferGeometry();
-    const roadPositions: number[] = [];
-    const roadNormals: number[] = [];
-    const roadUvs: number[] = [];
-    const roadIndices: number[] = [];
-
-    // --- Left & Right Shoulders ---
-    const leftShoulderGeo = new THREE.BufferGeometry();
-    const leftPositions: number[] = [];
-    const leftNormals: number[] = [];
-    const leftUvs: number[] = [];
-    const leftIndices: number[] = [];
-
-    const rightShoulderGeo = new THREE.BufferGeometry();
-    const rightPositions: number[] = [];
-    const rightNormals: number[] = [];
-    const rightUvs: number[] = [];
-    const rightIndices: number[] = [];
+    const positions: number[] = [];
+    const normals: number[] = [];
+    const uvs: number[] = [];
+    const indices: number[] = [];
 
     for (let i = 0; i < steps; i++) {
       const s = this.samples[i];
       const p = s.point;
       const b = s.binormal;
-      const vProgress = (this.chunkIndex * CONFIG.road.chunkLength + (i / steps) * CONFIG.road.chunkLength) / 12.0;
+      const n = s.normal;
 
-      // Road edge vertices
-      const leftRoad = p.clone().addScaledVector(b, -halfWidth);
-      const rightRoad = p.clone().addScaledVector(b, halfWidth);
+      // Longitudinal texture repeating every 14 meters
+      const vProgress = (this.chunkIndex * CONFIG.road.chunkLength + (i / steps) * CONFIG.road.chunkLength) / 14.0;
 
-      // Shoulder outer vertices (slight slope down by 0.15m)
-      const leftShoulderOuter = p.clone().addScaledVector(b, -(halfWidth + shoulderW)).add(new THREE.Vector3(0, -0.15, 0));
-      const rightShoulderOuter = p.clone().addScaledVector(b, halfWidth + shoulderW).add(new THREE.Vector3(0, -0.15, 0));
+      for (let c = 0; c < numCols; c++) {
+        const prof = profile[c];
+        const vPos = p.clone()
+          .addScaledVector(b, prof.offset)
+          .addScaledVector(n, prof.heightOffset);
 
-      // Road vertices
-      roadPositions.push(leftRoad.x, leftRoad.y, leftRoad.z);
-      roadPositions.push(rightRoad.x, rightRoad.y, rightRoad.z);
-      roadNormals.push(0, 1, 0, 0, 1, 0);
-      roadUvs.push(0, vProgress, 1, vProgress);
-
-      // Left shoulder vertices
-      leftPositions.push(leftShoulderOuter.x, leftShoulderOuter.y, leftShoulderOuter.z);
-      leftPositions.push(leftRoad.x, leftRoad.y, leftRoad.z);
-      leftNormals.push(0, 1, 0, 0, 1, 0);
-      leftUvs.push(0, vProgress, 1, vProgress);
-
-      // Right shoulder vertices
-      rightPositions.push(rightRoad.x, rightRoad.y, rightRoad.z);
-      rightPositions.push(rightShoulderOuter.x, rightShoulderOuter.y, rightShoulderOuter.z);
-      rightNormals.push(0, 1, 0, 0, 1, 0);
-      rightUvs.push(0, vProgress, 1, vProgress);
+        positions.push(vPos.x, vPos.y, vPos.z);
+        normals.push(n.x, n.y, n.z);
+        uvs.push(prof.u, vProgress);
+      }
 
       if (i < steps - 1) {
-        const row = i * 2;
-        // Road indices
-        roadIndices.push(row, row + 1, row + 2);
-        roadIndices.push(row + 1, row + 3, row + 2);
+        const row = i * numCols;
+        const nextRow = (i + 1) * numCols;
+        for (let c = 0; c < numCols - 1; c++) {
+          const a = row + c;
+          const b_idx = nextRow + c;
+          const d = row + c + 1;
+          const c_idx = nextRow + c + 1;
 
-        // Left shoulder indices
-        leftIndices.push(row, row + 1, row + 2);
-        leftIndices.push(row + 1, row + 3, row + 2);
-
-        // Right shoulder indices
-        rightIndices.push(row, row + 1, row + 2);
-        rightIndices.push(row + 1, row + 3, row + 2);
+          indices.push(a, b_idx, c_idx);
+          indices.push(a, c_idx, d);
+        }
       }
     }
 
-    roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(roadPositions, 3));
-    roadGeo.setAttribute('normal', new THREE.Float32BufferAttribute(roadNormals, 3));
-    roadGeo.setAttribute('uv', new THREE.Float32BufferAttribute(roadUvs, 2));
-    roadGeo.setIndex(roadIndices);
+    roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    roadGeo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    roadGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    roadGeo.setIndex(indices);
     roadGeo.computeVertexNormals();
 
     this.roadMesh = new THREE.Mesh(roadGeo, roadMat);
     this.roadMesh.receiveShadow = true;
     this.group.add(this.roadMesh);
 
-    leftShoulderGeo.setAttribute('position', new THREE.Float32BufferAttribute(leftPositions, 3));
-    leftShoulderGeo.setAttribute('normal', new THREE.Float32BufferAttribute(leftNormals, 3));
-    leftShoulderGeo.setAttribute('uv', new THREE.Float32BufferAttribute(leftUvs, 2));
-    leftShoulderGeo.setIndex(leftIndices);
-    leftShoulderGeo.computeVertexNormals();
+    // Build retro-reflective road studs (Cat's eyes) along center line and edges
+    this.buildRoadStuds();
+  }
 
-    this.leftShoulderMesh = new THREE.Mesh(leftShoulderGeo, shoulderMat);
+  /**
+   * Adds glowing retro-reflective road studs (Amber on center line, Red on left, White on right).
+   */
+  private buildRoadStuds(): void {
+    const studMatAmber = new THREE.MeshStandardMaterial({
+      color: 0xffcc00,
+      emissive: 0xff9900,
+      emissiveIntensity: 0.4,
+      roughness: 0.3,
+      metalness: 0.8
+    });
+    const studMatRed = new THREE.MeshStandardMaterial({
+      color: 0xff3333,
+      emissive: 0xcc1111,
+      emissiveIntensity: 0.3,
+      roughness: 0.3
+    });
+    const studMatWhite = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: 0xcccccc,
+      emissiveIntensity: 0.3,
+      roughness: 0.3
+    });
+
+    const studGeo = new THREE.BoxGeometry(0.12, 0.03, 0.22);
+    const halfWidth = CONFIG.road.width * 0.5 - 0.12;
+
+    // Place studs every 5 spline steps (~13 meters)
+    for (let i = 2; i < this.samples.length - 2; i += 5) {
+      const s = this.samples[i];
+
+      // Center Amber Stud
+      const centerPos = s.point.clone().addScaledVector(s.normal, 0.065);
+      const centerStud = new THREE.Mesh(studGeo, studMatAmber);
+      centerStud.position.copy(centerPos);
+      centerStud.quaternion.setFromRotationMatrix(
+        new THREE.Matrix4().lookAt(s.tangent, new THREE.Vector3(0, 0, 0), s.normal)
+      );
+      this.propsGroup.add(centerStud);
+
+      // Left Red Stud
+      const leftPos = s.point.clone().addScaledVector(s.binormal, -halfWidth).addScaledVector(s.normal, 0.015);
+      const leftStud = new THREE.Mesh(studGeo, studMatRed);
+      leftStud.position.copy(leftPos);
+      leftStud.quaternion.copy(centerStud.quaternion);
+      this.propsGroup.add(leftStud);
+
+      // Right White Stud
+      const rightPos = s.point.clone().addScaledVector(s.binormal, halfWidth).addScaledVector(s.normal, 0.015);
+      const rightStud = new THREE.Mesh(studGeo, studMatWhite);
+      rightStud.position.copy(rightPos);
+      rightStud.quaternion.copy(centerStud.quaternion);
+      this.propsGroup.add(rightStud);
+    }
+  }
+
+  /**
+   * Builds multi-stage roadside shoulder meshes (hard compacted gravel + soft red moorum verge).
+   */
+  private buildShoulderMesh(shoulderMat: THREE.Material): void {
+    const steps = this.samples.length;
+    const halfWidth = CONFIG.road.width * 0.5;
+    const shoulderW = CONFIG.road.shoulderWidth;
+
+    // Left shoulder geometry
+    const leftGeo = new THREE.BufferGeometry();
+    const leftPositions: number[] = [];
+    const leftNormals: number[] = [];
+    const leftUvs: number[] = [];
+    const leftIndices: number[] = [];
+
+    // Right shoulder geometry
+    const rightGeo = new THREE.BufferGeometry();
+    const rightPositions: number[] = [];
+    const rightNormals: number[] = [];
+    const rightUvs: number[] = [];
+    const rightIndices: number[] = [];
+
+    // 3 cross-section points per shoulder (road bevel bottom -> mid gravel -> outer dirt slope)
+    for (let i = 0; i < steps; i++) {
+      const s = this.samples[i];
+      const p = s.point;
+      const b = s.binormal;
+      const n = s.normal;
+      const vProgress = (this.chunkIndex * CONFIG.road.chunkLength + (i / steps) * CONFIG.road.chunkLength) / 6.0;
+
+      // Left Shoulder Vertices (Inner -> Mid -> Outer)
+      const l0 = p.clone().addScaledVector(b, -halfWidth).addScaledVector(n, -0.04);
+      const l1 = p.clone().addScaledVector(b, -(halfWidth + shoulderW * 0.45)).addScaledVector(n, -0.07);
+      const l2 = p.clone().addScaledVector(b, -(halfWidth + shoulderW)).addScaledVector(n, -0.14);
+
+      leftPositions.push(l2.x, l2.y, l2.z, l1.x, l1.y, l1.z, l0.x, l0.y, l0.z);
+      leftNormals.push(n.x, n.y, n.z, n.x, n.y, n.z, n.x, n.y, n.z);
+      leftUvs.push(0.0, vProgress, 0.5, vProgress, 1.0, vProgress);
+
+      // Right Shoulder Vertices (Inner -> Mid -> Outer)
+      const r0 = p.clone().addScaledVector(b, halfWidth).addScaledVector(n, -0.04);
+      const r1 = p.clone().addScaledVector(b, halfWidth + shoulderW * 0.45).addScaledVector(n, -0.07);
+      const r2 = p.clone().addScaledVector(b, halfWidth + shoulderW).addScaledVector(n, -0.14);
+
+      rightPositions.push(r0.x, r0.y, r0.z, r1.x, r1.y, r1.z, r2.x, r2.y, r2.z);
+      rightNormals.push(n.x, n.y, n.z, n.x, n.y, n.z, n.x, n.y, n.z);
+      rightUvs.push(0.0, vProgress, 0.5, vProgress, 1.0, vProgress);
+
+      if (i < steps - 1) {
+        const row = i * 3;
+        const nextRow = (i + 1) * 3;
+
+        // Left quads (2 quad columns)
+        for (let c = 0; c < 2; c++) {
+          const a = row + c;
+          const b_idx = nextRow + c;
+          const d = row + c + 1;
+          const c_idx = nextRow + c + 1;
+          leftIndices.push(a, b_idx, c_idx, a, c_idx, d);
+        }
+
+        // Right quads (2 quad columns)
+        for (let c = 0; c < 2; c++) {
+          const a = row + c;
+          const b_idx = nextRow + c;
+          const d = row + c + 1;
+          const c_idx = nextRow + c + 1;
+          rightIndices.push(a, b_idx, c_idx, a, c_idx, d);
+        }
+      }
+    }
+
+    leftGeo.setAttribute('position', new THREE.Float32BufferAttribute(leftPositions, 3));
+    leftGeo.setAttribute('normal', new THREE.Float32BufferAttribute(leftNormals, 3));
+    leftGeo.setAttribute('uv', new THREE.Float32BufferAttribute(leftUvs, 2));
+    leftGeo.setIndex(leftIndices);
+    leftGeo.computeVertexNormals();
+
+    this.leftShoulderMesh = new THREE.Mesh(leftGeo, shoulderMat);
     this.leftShoulderMesh.receiveShadow = true;
     this.group.add(this.leftShoulderMesh);
 
-    rightShoulderGeo.setAttribute('position', new THREE.Float32BufferAttribute(rightPositions, 3));
-    rightShoulderGeo.setAttribute('normal', new THREE.Float32BufferAttribute(rightNormals, 3));
-    rightShoulderGeo.setAttribute('uv', new THREE.Float32BufferAttribute(rightUvs, 2));
-    rightShoulderGeo.setIndex(rightIndices);
-    rightShoulderGeo.computeVertexNormals();
+    rightGeo.setAttribute('position', new THREE.Float32BufferAttribute(rightPositions, 3));
+    rightGeo.setAttribute('normal', new THREE.Float32BufferAttribute(rightNormals, 3));
+    rightGeo.setAttribute('uv', new THREE.Float32BufferAttribute(rightUvs, 2));
+    rightGeo.setIndex(rightIndices);
+    rightGeo.computeVertexNormals();
 
-    this.rightShoulderMesh = new THREE.Mesh(rightShoulderGeo, shoulderMat);
+    this.rightShoulderMesh = new THREE.Mesh(rightGeo, shoulderMat);
     this.rightShoulderMesh.receiveShadow = true;
     this.group.add(this.rightShoulderMesh);
   }
 
+  /**
+   * Builds high-resolution 24-column landscape mesh with 4-octave FBM noise,
+   * engineered cut-and-fill slopes, and multi-biome vertex colors.
+   */
   private buildTerrainMesh(noise2D: (x: number, y: number) => number, terrainMat: THREE.Material): void {
     const steps = this.samples.length;
-    const terrainWidth = 140; // Terrain width on either side
-    const terrainCols = 8;     // Cross-section segments
+    const terrainWidth = 320; // 320m expansive terrain on both sides
+    const terrainCols = 20;   // 20 non-linear columns per side
 
     const geo = new THREE.BufferGeometry();
     const positions: number[] = [];
     const normals: number[] = [];
+    const colors: number[] = [];
     const uvs: number[] = [];
     const indices: number[] = [];
 
-    const halfRoad = CONFIG.road.width / 2 + CONFIG.road.shoulderWidth;
+    const halfRoad = CONFIG.road.width * 0.5 + CONFIG.road.shoulderWidth;
+
+    // Precalculate non-linear column lateral distances (dense near road, wider far out)
+    const leftDistances: number[] = [];
+    const rightDistances: number[] = [];
+
+    for (let c = 0; c <= terrainCols; c++) {
+      const u = c / terrainCols;
+      // Non-linear power distribution u^1.7 gives dense roadside berms and expansive distant hills
+      const dist = halfRoad + Math.pow(u, 1.7) * (terrainWidth - halfRoad);
+      rightDistances.push(dist);
+      leftDistances.push(-dist);
+    }
+    // Reverse left distances so index 0 is farthest left (-terrainWidth) and last is closest to road (-halfRoad)
+    leftDistances.reverse();
 
     for (let i = 0; i < steps; i++) {
       const s = this.samples[i];
       const p = s.point;
       const b = s.binormal;
+      const n = s.normal;
 
-      // Left terrain (from -terrainWidth to -halfRoad)
+      // 1. Left Terrain Strip (from -terrainWidth inwards to -halfRoad)
       for (let c = 0; c <= terrainCols; c++) {
-        const u = c / terrainCols;
-        const dist = -terrainWidth + u * (terrainWidth - halfRoad);
+        const dist = leftDistances[c];
         const pt = p.clone().addScaledVector(b, dist);
         
-        // Blend noise height with road edge height
-        const blend = Math.min(1, Math.max(0, (Math.abs(dist) - halfRoad) / 30));
-        const rawNoise = noise2D(pt.x * 0.008, pt.z * 0.008) * 18 + noise2D(pt.x * 0.02, pt.z * 0.02) * 5;
-        pt.y = p.y * (1 - blend) + (p.y - 0.2 + rawNoise) * blend;
+        // At innermost column bordering shoulder, match shoulder outer edge normal offset
+        if (c === terrainCols) {
+          pt.addScaledVector(n, -0.14);
+        }
+
+        // Calculate ground elevation using cut-and-fill FBM model with 3D banking
+        pt.y = TerrainUtils.getEngineeredHeight(pt.x, pt.z, p, dist, noise2D, b, n);
 
         positions.push(pt.x, pt.y, pt.z);
-        normals.push(0, 1, 0);
-        uvs.push(pt.x * 0.05, pt.z * 0.05);
+        normals.push(0, 1, 0); // Will be recalculated by computeVertexNormals
+        uvs.push(pt.x * 0.035, pt.z * 0.035);
+
+        // Biome vertex coloring
+        const noiseVal = noise2D(pt.x * 0.015, pt.z * 0.015);
+        const col = TerrainUtils.getBiomeVertexColor(pt.y, 0.9, Math.abs(dist), noiseVal);
+        colors.push(col.r, col.g, col.b);
       }
 
-      // Right terrain (from +halfRoad to +terrainWidth)
+      // 2. Right Terrain Strip (from +halfRoad outwards to +terrainWidth)
       for (let c = 0; c <= terrainCols; c++) {
-        const u = c / terrainCols;
-        const dist = halfRoad + u * (terrainWidth - halfRoad);
+        const dist = rightDistances[c];
         const pt = p.clone().addScaledVector(b, dist);
 
-        const blend = Math.min(1, Math.max(0, (Math.abs(dist) - halfRoad) / 30));
-        const rawNoise = noise2D(pt.x * 0.008, pt.z * 0.008) * 18 + noise2D(pt.x * 0.02, pt.z * 0.02) * 5;
-        pt.y = p.y * (1 - blend) + (p.y - 0.2 + rawNoise) * blend;
+        // At innermost column bordering shoulder, match shoulder outer edge normal offset
+        if (c === 0) {
+          pt.addScaledVector(n, -0.14);
+        }
+
+        pt.y = TerrainUtils.getEngineeredHeight(pt.x, pt.z, p, dist, noise2D, b, n);
 
         positions.push(pt.x, pt.y, pt.z);
         normals.push(0, 1, 0);
-        uvs.push(pt.x * 0.05, pt.z * 0.05);
+        uvs.push(pt.x * 0.035, pt.z * 0.035);
+
+        const noiseVal = noise2D(pt.x * 0.015, pt.z * 0.015);
+        const col = TerrainUtils.getBiomeVertexColor(pt.y, 0.9, Math.abs(dist), noiseVal);
+        colors.push(col.r, col.g, col.b);
       }
 
       if (i < steps - 1) {
@@ -273,26 +428,231 @@ export class SplineChunk {
         const row = i * totalCols;
         const nextRow = (i + 1) * totalCols;
 
-        // Left side quads
+        // Left strip quads
         for (let c = 0; c < terrainCols; c++) {
           const a = row + c;
           const d = row + c + 1;
           const c_idx = nextRow + c + 1;
           const b_idx = nextRow + c;
-          indices.push(a, b_idx, d);
-          indices.push(b_idx, c_idx, d);
+          indices.push(a, b_idx, c_idx, a, c_idx, d);
         }
 
-        // Right side quads
+        // Right strip quads
         const offset = terrainCols + 1;
         for (let c = 0; c < terrainCols; c++) {
           const a = row + offset + c;
           const d = row + offset + c + 1;
           const c_idx = nextRow + offset + c + 1;
           const b_idx = nextRow + offset + c;
-          indices.push(a, b_idx, d);
-          indices.push(b_idx, c_idx, d);
+          indices.push(a, b_idx, c_idx, a, c_idx, d);
         }
+      }
+    }
+
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+
+    // Recompute vertex colors using true surface normals for rich slope detection
+    const normAttr = geo.getAttribute('normal');
+    const colorAttr = geo.getAttribute('color');
+    for (let idx = 0; idx < positions.length / 3; idx++) {
+      const px = positions[idx * 3];
+      const py = positions[idx * 3 + 1];
+      const pz = positions[idx * 3 + 2];
+      const ny = normAttr.getY(idx);
+
+      // Find approximate distance to road center
+      const s = this.samples[Math.min(steps - 1, Math.floor((idx / ((terrainCols + 1) * 2))))];
+      const dist = s.point.distanceTo(new THREE.Vector3(px, py, pz));
+      const noiseVal = noise2D(px * 0.015, pz * 0.015);
+
+      const col = TerrainUtils.getBiomeVertexColor(py, ny, dist, noiseVal);
+      colorAttr.setXYZ(idx, col.r, col.g, col.b);
+    }
+
+    this.terrainMesh = new THREE.Mesh(geo, terrainMat);
+    this.terrainMesh.receiveShadow = true;
+    this.group.add(this.terrainMesh);
+  }
+
+  /**
+   * Places highway infrastructure (W-beam guardrails, signs, milestones) and authentic Indian flora.
+   */
+  private buildProps(noise2D: (x: number, y: number) => number): void {
+    const halfRoad = CONFIG.road.width * 0.5 + CONFIG.road.shoulderWidth + 0.3;
+    const kmNumber = (this.chunkIndex * 2) + 12;
+
+    // 1. Milestone every chunk
+    const milestoneSampleIdx = Math.floor(this.samples.length * 0.35);
+    const msSample = this.samples[milestoneSampleIdx];
+    const msPos = msSample.point.clone().addScaledVector(msSample.binormal, halfRoad + 0.8);
+    const milestone = this.createMilestoneMesh(kmNumber);
+    milestone.position.copy(msPos);
+    milestone.quaternion.setFromRotationMatrix(
+      new THREE.Matrix4().lookAt(msSample.tangent, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0))
+    );
+    this.propsGroup.add(milestone);
+
+    // 2. Highway Caution Signs on curves
+    const hasCurve = Math.abs(msSample.curvature) > 0.008;
+    if (hasCurve) {
+      const signIdx = Math.max(2, milestoneSampleIdx - 12);
+      const signSample = this.samples[signIdx];
+      const signSide = signSample.curvature > 0 ? 1 : -1;
+      const signPos = signSample.point.clone().addScaledVector(signSample.binormal, signSide * (halfRoad + 1.2));
+      const signType = signSample.curvature > 0 ? 'curve_right' : 'curve_left';
+      const signMesh = this.createHighwaySignMesh(signType);
+      signMesh.position.copy(signPos);
+      signMesh.quaternion.setFromRotationMatrix(
+        new THREE.Matrix4().lookAt(signSample.tangent, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0))
+      );
+      this.propsGroup.add(signMesh);
+    }
+
+    // 3. W-Beam Metal Guardrails along sharp curves or steep drop-offs
+    this.buildGuardrails();
+
+    // 4. Diverse Indian Roadside Trees (Gulmohar, Banyan, Neem, Palm)
+    for (let i = 3; i < this.samples.length - 3; i += 4) {
+      const s = this.samples[i];
+      const side = (i % 8 === 0) ? -1 : 1;
+      const lateralDist = halfRoad + 4.5 + (i % 5) * 4.2;
+      const treePos = s.point.clone().addScaledVector(s.binormal, side * lateralDist);
+
+      // Height on terrain
+      treePos.y = TerrainUtils.getEngineeredHeight(treePos.x, treePos.z, s.point, side * lateralDist, noise2D, s.binormal, s.normal);
+
+      const treeType = (i % 4 === 0) ? 'gulmohar' : (i % 4 === 1 ? 'banyan' : (i % 4 === 2 ? 'palm' : 'neem'));
+      const tree = this.createRealisticTree(treeType, i);
+      tree.position.copy(treePos);
+      tree.rotation.y = (i * 2.37);
+      const scale = 0.85 + (i % 5) * 0.18;
+      tree.scale.set(scale, scale, scale);
+      this.propsGroup.add(tree);
+    }
+
+    // 5. Roadside Bush Clusters & Rock Boulders
+    for (let i = 2; i < this.samples.length - 2; i += 3) {
+      const s = this.samples[i];
+      const side = (i % 2 === 0) ? -1 : 1;
+      const dist = halfRoad + 1.6 + ((i * 3) % 4) * 2.2;
+      const propPos = s.point.clone().addScaledVector(s.binormal, side * dist);
+      propPos.y = TerrainUtils.getEngineeredHeight(propPos.x, propPos.z, s.point, side * dist, noise2D, s.binormal, s.normal);
+
+      if (i % 3 === 0) {
+        // Flowering Bougainvillea / Lantana Bush
+        const bush = this.createFloweringBush(i);
+        bush.position.copy(propPos);
+        bush.rotation.y = i * 1.4;
+        this.propsGroup.add(bush);
+      } else {
+        // Granite Boulder
+        const boulder = this.createGraniteBoulder(i);
+        boulder.position.copy(propPos);
+        boulder.rotation.set(i * 0.5, i * 1.1, i * 0.3);
+        this.propsGroup.add(boulder);
+      }
+    }
+  }
+
+  /**
+   * Generates continuous galvanized steel W-beam guardrails with reflective tabs on outer curves.
+   */
+  private buildGuardrails(): void {
+    const halfRoad = CONFIG.road.width * 0.5 + CONFIG.road.shoulderWidth - 0.15;
+    const railMat = new THREE.MeshStandardMaterial({
+      map: TextureGenerator.createGuardrailTexture(),
+      roughness: 0.45,
+      metalness: 0.8
+    });
+    const postMat = new THREE.MeshStandardMaterial({
+      color: 0x6e757d,
+      roughness: 0.6,
+      metalness: 0.7
+    });
+
+    const postGeo = new THREE.BoxGeometry(0.12, 0.85, 0.12);
+
+    // Identify sections with notable curve or embankment
+    let inGuardrail = false;
+    let guardrailStart = 0;
+    let guardrailSide = 1;
+
+    for (let i = 0; i < this.samples.length; i++) {
+      const s = this.samples[i];
+      const needsRail = Math.abs(s.curvature) > 0.0065;
+      const side = s.curvature > 0 ? -1 : 1; // Outer side of curve
+
+      if (needsRail && !inGuardrail) {
+        inGuardrail = true;
+        guardrailStart = Math.max(0, i - 2);
+        guardrailSide = side;
+      } else if (!needsRail && inGuardrail && (i - guardrailStart > 8)) {
+        inGuardrail = false;
+        this.generateRailRibbon(guardrailStart, i, guardrailSide, halfRoad, railMat, postMat, postGeo);
+      }
+    }
+
+    if (inGuardrail) {
+      this.generateRailRibbon(guardrailStart, this.samples.length - 1, guardrailSide, halfRoad, railMat, postMat, postGeo);
+    }
+  }
+
+  private generateRailRibbon(
+    startIdx: number,
+    endIdx: number,
+    side: number,
+    lateralDist: number,
+    railMat: THREE.Material,
+    postMat: THREE.Material,
+    postGeo: THREE.BufferGeometry
+  ): void {
+    const count = endIdx - startIdx + 1;
+    if (count < 2) return;
+
+    const geo = new THREE.BufferGeometry();
+    const positions: number[] = [];
+    const normals: number[] = [];
+    const uvs: number[] = [];
+    const indices: number[] = [];
+
+    const railHeight = 0.35;
+    const railElevation = 0.55;
+
+    for (let j = 0; j < count; j++) {
+      const s = this.samples[startIdx + j];
+      const b = s.binormal;
+      const n = s.normal;
+      const basePos = s.point.clone().addScaledVector(b, side * lateralDist);
+
+      const topPos = basePos.clone().addScaledVector(n, railElevation + railHeight * 0.5);
+      const botPos = basePos.clone().addScaledVector(n, railElevation - railHeight * 0.5);
+
+      positions.push(topPos.x, topPos.y, topPos.z);
+      positions.push(botPos.x, botPos.y, botPos.z);
+
+      normals.push(-b.x * side, 0.1, -b.z * side);
+      normals.push(-b.x * side, 0.1, -b.z * side);
+
+      const globalSampleIdx = this.chunkIndex * (this.samples.length - 1) + (startIdx + j);
+      const uProgress = globalSampleIdx / 4.0;
+      uvs.push(uProgress, 0.0, uProgress, 1.0);
+
+      if (j < count - 1) {
+        const row = j * 2;
+        indices.push(row, row + 1, row + 2);
+        indices.push(row + 1, row + 3, row + 2);
+      }
+
+      // Spawn steel post every 3 steps
+      if (j % 3 === 0) {
+        const post = new THREE.Mesh(postGeo, postMat);
+        post.position.copy(basePos).addScaledVector(n, railElevation * 0.5);
+        this.propsGroup.add(post);
       }
     }
 
@@ -300,56 +660,43 @@ export class SplineChunk {
     geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geo.setIndex(indices);
-    geo.computeVertexNormals();
 
-    this.terrainMesh = new THREE.Mesh(geo, terrainMat);
-    this.terrainMesh.receiveShadow = true;
-    this.group.add(this.terrainMesh);
+    const railMesh = new THREE.Mesh(geo, railMat);
+    railMesh.castShadow = true;
+    this.propsGroup.add(railMesh);
   }
 
-  private buildProps(): void {
-    const halfRoad = CONFIG.road.width / 2 + CONFIG.road.shoulderWidth + 1.2;
-    const kmNumber = (this.chunkIndex * 2) + 12;
+  private createHighwaySignMesh(type: 'curve_left' | 'curve_right' | 'ghat' | 'speed_60' | 'go_slow'): THREE.Group {
+    const group = new THREE.Group();
 
-    // Place an Indian NH milestone on the left or right shoulder every chunk
-    const milestoneSampleIdx = Math.floor(this.samples.length * 0.4);
-    const s = this.samples[milestoneSampleIdx];
-    const msPos = s.point.clone().addScaledVector(s.binormal, halfRoad);
+    // Steel pole
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x555c66, roughness: 0.6, metalness: 0.8 });
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.8, 8), poleMat);
+    pole.position.y = 1.4;
+    pole.castShadow = true;
+    group.add(pole);
 
-    const milestoneMesh = this.createMilestoneMesh(kmNumber);
-    milestoneMesh.position.copy(msPos);
-    
-    // Align milestone rotation facing the oncoming road
-    const rotMat = new THREE.Matrix4().lookAt(s.tangent, new THREE.Vector3(0,0,0), new THREE.Vector3(0,1,0));
-    milestoneMesh.quaternion.setFromRotationMatrix(rotMat);
-    this.propsGroup.add(milestoneMesh);
+    // Signboard diamond panel
+    const signMat = new THREE.MeshStandardMaterial({
+      map: TextureGenerator.createRoadSignTexture(type),
+      roughness: 0.4
+    });
+    const signPanel = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.04), signMat);
+    signPanel.position.y = 2.4;
+    signPanel.rotation.z = Math.PI * 0.25; // Diamond orientation
+    signPanel.castShadow = true;
+    group.add(signPanel);
 
-    // Place roadside stylized trees along this chunk
-    for (let i = 4; i < this.samples.length - 2; i += 6) {
-      const sample = this.samples[i];
-      const side = (i % 12 === 0) ? -1 : 1;
-      const offsetDist = halfRoad + 3.0 + (i % 5) * 4.0;
-      const treePos = sample.point.clone().addScaledVector(sample.binormal, side * offsetDist);
-      
-      const treeType = (i % 3 === 0) ? 'gulmohar' : (i % 3 === 1 ? 'banyan' : 'neem');
-      const treeMesh = this.createStylizedTree(treeType);
-      treeMesh.position.copy(treePos);
-      treeMesh.rotation.y = (i * 1.7);
-      const scale = 0.8 + (i % 4) * 0.2;
-      treeMesh.scale.set(scale, scale, scale);
-      this.propsGroup.add(treeMesh);
-    }
+    return group;
   }
 
   private createMilestoneMesh(km: number): THREE.Group {
     const group = new THREE.Group();
-
     const stoneMat = new THREE.MeshStandardMaterial({
       map: TextureGenerator.createMilestoneTexture(km, 'NH 44'),
       roughness: 0.85
     });
 
-    // Milestone body (curved cylinder top + rectangular base)
     const baseGeo = new THREE.BoxGeometry(0.8, 1.2, 0.4);
     const baseMesh = new THREE.Mesh(baseGeo, stoneMat);
     baseMesh.position.y = 0.6;
@@ -366,57 +713,153 @@ export class SplineChunk {
     return group;
   }
 
-  private createStylizedTree(type: 'gulmohar' | 'banyan' | 'neem'): THREE.Group {
+  /**
+   * Creates realistic Indian trees: Gulmohar, Banyan (with aerial roots), Neem, and Date Palms.
+   */
+  private createRealisticTree(type: 'gulmohar' | 'banyan' | 'neem' | 'palm', seed: number): THREE.Group {
     const group = new THREE.Group();
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x422f20, roughness: 0.92 });
 
-    // Trunk
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3424, roughness: 0.9 });
-    const trunkHeight = type === 'banyan' ? 5.5 : 4.5;
-    const trunkGeo = new THREE.CylinderGeometry(0.35, 0.6, trunkHeight, 7);
-    const trunkMesh = new THREE.Mesh(trunkGeo, trunkMat);
-    trunkMesh.position.y = trunkHeight / 2;
-    trunkMesh.castShadow = true;
-    group.add(trunkMesh);
+    const heightVar = (seed % 3) * 0.4;
+    if (type === 'palm') {
+      // Slender ridged trunk
+      const trunkH = 7.5 + heightVar;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.38, trunkH, 7), trunkMat);
+      trunk.position.y = trunkH * 0.5;
+      trunk.castShadow = true;
+      group.add(trunk);
 
-    // Foliage
-    let foliageColor = 0x2e6b2c; // Default Neem green
-    if (type === 'gulmohar') foliageColor = 0xd9381e; // Iconic vibrant Orange-Red
-    if (type === 'banyan') foliageColor = 0x1f5424;   // Deep lush Green
+      // Radial Palm Fronds
+      const frondMat = new THREE.MeshStandardMaterial({ color: 0x2e6b2c, roughness: 0.7, flatShading: true });
+      const numFronds = 9;
+      for (let f = 0; f < numFronds; f++) {
+        const frondAngle = (f / numFronds) * Math.PI * 2;
+        const frond = new THREE.Mesh(new THREE.ConeGeometry(0.7, 3.2, 4), frondMat);
+        frond.position.set(0, trunkH - 0.2, 0);
+        frond.rotation.y = frondAngle;
+        frond.rotation.x = 0.9;
+        frond.castShadow = true;
+        group.add(frond);
+      }
+    } else if (type === 'gulmohar') {
+      // Umbrella-shaped blooming orange-red crown
+      const trunkH = 5.2 + heightVar;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.65, trunkH, 8), trunkMat);
+      trunk.position.y = trunkH * 0.5;
+      trunk.castShadow = true;
+      group.add(trunk);
 
-    const foliageMat = new THREE.MeshStandardMaterial({
-      color: foliageColor,
-      roughness: 0.7,
-      flatShading: true
-    });
+      const bloomMat = new THREE.MeshStandardMaterial({
+        color: 0xe03a18, // Vibrant Indian red-orange Gulmohar blossoms
+        roughness: 0.7,
+        flatShading: true
+      });
 
-    if (type === 'gulmohar') {
-      // Umbrella canopy shape
-      const crown1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.6, 1), foliageMat);
-      crown1.position.y = trunkHeight + 1.2;
-      crown1.scale.set(1.4, 0.7, 1.4);
+      // Sprawling umbrella crown clusters
+      const crown1 = new THREE.Mesh(new THREE.DodecahedronGeometry(3.2, 1), bloomMat);
+      crown1.position.set(0, trunkH + 1.4, 0);
+      crown1.scale.set(1.6, 0.65, 1.6);
       crown1.castShadow = true;
       group.add(crown1);
-    } else if (type === 'banyan') {
-      // Wide sprawling canopy
-      const crown1 = new THREE.Mesh(new THREE.DodecahedronGeometry(3.5, 1), foliageMat);
-      crown1.position.y = trunkHeight + 1.5;
-      crown1.scale.set(1.8, 0.8, 1.8);
-      crown1.castShadow = true;
-      group.add(crown1);
-    } else {
-      // Conical / tiered neem foliage
-      const crown1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.4, 1), foliageMat);
-      crown1.position.y = trunkHeight + 1.2;
-      crown1.castShadow = true;
-      group.add(crown1);
 
-      const crown2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.8, 1), foliageMat);
-      crown2.position.y = trunkHeight + 2.6;
+      const crown2 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.4, 1), bloomMat);
+      crown2.position.set(1.4, trunkH + 1.1, 0.8);
+      crown2.scale.set(1.3, 0.6, 1.3);
       crown2.castShadow = true;
       group.add(crown2);
+
+    } else if (type === 'banyan') {
+      // Grand sprawling Banyan tree with aerial prop root pillars
+      const trunkH = 5.8;
+      const mainTrunk = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 1.1, trunkH, 8), trunkMat);
+      mainTrunk.position.y = trunkH * 0.5;
+      mainTrunk.castShadow = true;
+      group.add(mainTrunk);
+
+      // Aerial prop roots descending from branches
+      const rootPositions = [
+        [-2.0, 1.5], [2.2, -1.2], [-1.4, -2.2], [1.8, 1.9]
+      ];
+      for (const [rx, rz] of rootPositions) {
+        const root = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, trunkH, 5), trunkMat);
+        root.position.set(rx, trunkH * 0.5, rz);
+        root.castShadow = true;
+        group.add(root);
+      }
+
+      const foliageMat = new THREE.MeshStandardMaterial({
+        color: 0x1d4d22, // Deep ancient lush green
+        roughness: 0.75,
+        flatShading: true
+      });
+
+      const canopy = new THREE.Mesh(new THREE.DodecahedronGeometry(4.6, 1), foliageMat);
+      canopy.position.set(0, trunkH + 1.8, 0);
+      canopy.scale.set(2.1, 0.75, 2.1);
+      canopy.castShadow = true;
+      group.add(canopy);
+
+    } else {
+      // Tiered Neem tree
+      const trunkH = 4.8;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.55, trunkH, 7), trunkMat);
+      trunk.position.y = trunkH * 0.5;
+      trunk.castShadow = true;
+      group.add(trunk);
+
+      const neemMat = new THREE.MeshStandardMaterial({
+        color: 0x367a30,
+        roughness: 0.75,
+        flatShading: true
+      });
+
+      const tier1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.6, 1), neemMat);
+      tier1.position.y = trunkH + 1.2;
+      tier1.castShadow = true;
+      group.add(tier1);
+
+      const tier2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.9, 1), neemMat);
+      tier2.position.y = trunkH + 2.6;
+      tier2.castShadow = true;
+      group.add(tier2);
     }
 
     return group;
+  }
+
+  private createFloweringBush(seed: number): THREE.Group {
+    const group = new THREE.Group();
+    const colors = [0xd62828, 0xf77f00, 0xfcbf49, 0x4f772d];
+    const bushColor = colors[seed % colors.length];
+
+    const mat = new THREE.MeshStandardMaterial({
+      color: bushColor,
+      roughness: 0.8,
+      flatShading: true
+    });
+
+    const bush = new THREE.Mesh(new THREE.DodecahedronGeometry(0.75 + (seed % 3) * 0.25, 1), mat);
+    bush.position.y = 0.5;
+    bush.scale.set(1.4, 0.8, 1.2);
+    bush.castShadow = true;
+    group.add(bush);
+
+    return group;
+  }
+
+  private createGraniteBoulder(seed: number): THREE.Mesh {
+    const rockMat = new THREE.MeshStandardMaterial({
+      color: 0x5c5750,
+      roughness: 0.9,
+      flatShading: true
+    });
+
+    const scale = 0.6 + (seed % 4) * 0.35;
+    const boulder = new THREE.Mesh(new THREE.DodecahedronGeometry(scale, 0), rockMat);
+    boulder.position.y = scale * 0.55;
+    boulder.scale.set(1.3, 0.75, 1.1);
+    boulder.castShadow = true;
+    return boulder;
   }
 
   public dispose(): void {

@@ -668,9 +668,9 @@ export class CarModel {
   }
 
   public updateWheelVisuals(steerAngle: number, spinDelta: number): void {
-    // Steer front wheels
-    this.wheels.frontLeft.rotation.y = steerAngle;
-    this.wheels.frontRight.rotation.y = Math.PI + steerAngle;
+    // Steer front wheels (negative steerAngle to turn mesh towards screen right when steerAngle > 0)
+    this.wheels.frontLeft.rotation.y = -steerAngle;
+    this.wheels.frontRight.rotation.y = Math.PI - steerAngle;
 
     // Spin all wheels around local X axis
     const spinGroup = (grp: THREE.Group, delta: number) => {

@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository contains a browser-based Three.js truck simulator built with TypeScript and Vite. `src/main.ts` wires together the render loop and major systems. Keep domain code in the existing folders: `src/core/` for input and audio, `src/vehicle/` for vehicle physics and models, `src/world/` for procedural roads, terrain, and textures, `src/camera/` for camera behavior, and `src/ui/` for the HUD. Shared gameplay constants belong in `src/config.ts`. The root `index.html` contains the page shell and HUD styling. `public/` is available for static assets; `dist/` is generated build output and should not be edited manually.
+This repository contains a browser-based Three.js truck simulator built with TypeScript and Vite. `src/main.ts` wires together the render loop and major systems. Keep domain code in the existing folders: `src/core/` for input and audio, `src/vehicle/` for vehicle physics and models, `src/world/` for procedural roads, terrain, and textures, `src/camera/` for camera behavior, and `src/ui/` for the HUD. Shared gameplay constants belong in `src/config.ts`. The root `index.html` contains the page shell and HUD styling. Playwright smoke tests live in `tests/e2e/`, with project and server settings in `playwright.config.ts`. `public/` is available for static assets; `dist/` is generated build output and should not be edited manually.
 
 ## Build, Test, and Development Commands
 
@@ -10,8 +10,11 @@ This repository contains a browser-based Three.js truck simulator built with Typ
 - `npm run dev` starts Vite on port 3000 and opens the simulator locally.
 - `npm run build` runs strict TypeScript checks, then creates a production bundle in `dist/`.
 - `npm run preview` serves the production bundle for final browser verification.
+- `npx playwright install chromium` installs the browser binary required for local E2E runs.
+- `npm run test:e2e` runs the Playwright smoke suite in desktop and touch-enabled mobile Chromium projects.
+- `npm run test:e2e:ui` opens Playwright's interactive UI for local test development.
 
-Run `npm run build` before submitting changes. There is currently no separate lint or automated test command.
+Run `npm run build` followed by `npm run test:e2e` before submitting changes. There is currently no separate lint command.
 
 ## Coding Style & Naming Conventions
 
@@ -19,7 +22,7 @@ Follow the established TypeScript style: two-space indentation, single quotes, s
 
 ## Testing Guidelines
 
-Until an automated suite is added, treat `npm run build` as the minimum regression check. Then exercise the affected behavior in the browser: keyboard and touch controls, reset/autopilot toggles, camera and theme changes, road generation, and window resizing as relevant. For visual changes, compare desktop and narrow viewport layouts and include screenshots in the pull request.
+Use Playwright for browser-visible behavior and keep tests under `tests/e2e/`. Assert through the simulator's public DOM and visible HUD state rather than internal `window.game` or Three.js objects. Prefer polling assertions with bounded timeouts for animation-driven values instead of fixed delays. The smoke suite covers desktop and touch-enabled mobile Chromium; supplement it with focused manual checks for behavior outside that coverage, such as road generation and window resizing. For visual changes, compare desktop and narrow viewport layouts and include screenshots in the pull request.
 
 ## Commit & Pull Request Guidelines
 

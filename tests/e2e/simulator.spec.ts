@@ -163,6 +163,26 @@ test('drives with the keyboard and resets the HUD metrics', async ({ page }) => 
   await expect(distance).toHaveText('0.0 KM');
 });
 
+test('reverses and resets the truck', async ({ page }) => {
+  const speed = page.locator('#hud-speed');
+  const autopilot = page.locator('#btn-autopilot');
+
+  await page.keyboard.down('s');
+  try {
+    await expect.poll(() => readNumber(speed.textContent()), { timeout: 5_000 })
+      .toBeGreaterThan(0);
+  } finally {
+    await page.keyboard.up('s');
+  }
+
+  await autopilot.click();
+  await expect(autopilot).toHaveClass(/autopilot-active/);
+  await page.locator('#btn-reset').click();
+  await expect(speed).toHaveText('0');
+  await expect(autopilot).not.toHaveClass(/autopilot-active/);
+  await expect(autopilot).toHaveAttribute('aria-pressed', 'false');
+});
+
 test('mobile touch controls accelerate the truck', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'chromium-mobile', 'Mobile Chromium coverage only');
 

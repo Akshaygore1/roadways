@@ -28,12 +28,14 @@ export class RoadManager {
   private roadMaterial: THREE.MeshStandardMaterial;
   private shoulderMaterial: THREE.MeshStandardMaterial;
   private terrainMaterial: THREE.MeshStandardMaterial;
+  private currentLowestChunkIndex: number = 0;
   private currentHighestChunkIndex: number = -1;
 
   // Global continuous control point sequence
   private controlPoints: Map<number, THREE.Vector3> = new Map();
   private controlDirections: Map<number, THREE.Vector3> = new Map();
-  private lastGeneratedIndex: number = -3;
+  private lowestGeneratedIndex: number = 0;
+  private highestGeneratedIndex: number = 0;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -74,58 +76,84 @@ export class RoadManager {
   }
 
   private initControlPoints(): void {
-    const segLength = CONFIG.road.chunkLength / POINTS_PER_CHUNK;
     const startY = TerrainUtils.fbmNoise2D(0, 0, this.noise2D);
     const p0 = new THREE.Vector3(0, startY, 0);
     const d0 = new THREE.Vector3(0, 0, 1);
 
     this.controlPoints.set(0, p0);
     this.controlDirections.set(0, d0.clone());
-
-    // Padding control points behind starting origin
-    const pMinus1 = p0.clone().addScaledVector(d0, -segLength);
-    const pMinus2 = p0.clone().addScaledVector(d0, -2 * segLength);
-    this.controlPoints.set(-1, pMinus1);
-    this.controlDirections.set(-1, d0.clone());
-    this.controlPoints.set(-2, pMinus2);
-    this.controlDirections.set(-2, d0.clone());
-
-    this.lastGeneratedIndex = 0;
+    this.lowestGeneratedIndex = 0;
+    this.highestGeneratedIndex = 0;
   }
 
   public ensureControlPoints(targetIndex: number): void {
     const segLength = CONFIG.road.chunkLength / POINTS_PER_CHUNK;
 
-    while (this.lastGeneratedIndex < targetIndex) {
-      const i = this.lastGeneratedIndex + 1;
+    while (this.highestGeneratedIndex < targetIndex) {
+      const i = this.highestGeneratedIndex + 1;
       const prevPos = this.controlPoints.get(i - 1)!;
       const prevDir = this.controlDirections.get(i - 1)!;
       const currentDir = prevDir.clone();
 
-      const globalProgress = i * 0.08;
-      const curveNoise = this.noise2D(globalProgress * 0.55, 12.3);
-      const angle = curveNoise * CONFIG.road.maxCurveAngle;
-
-      const rot = new THREE.Matrix4().makeRotationY(angle * 0.38);
+      const rot = new THREE.Matrix4().makeRotationY(this.getTurnAngle(i));
       currentDir.applyMatrix4(rot).normalize();
 
       const nextPos = prevPos.clone().add(currentDir.clone().multiplyScalar(segLength));
 
       const naturalTerrainY = TerrainUtils.fbmHighwayGrade2D(nextPos.x, nextPos.z, this.noise2D);
-      const maxDeltaY = segLength * 0.045;
-      const rawDeltaY = naturalTerrainY - prevPos.y;
-      const clampedDeltaY = THREE.MathUtils.clamp(rawDeltaY * 0.32, -maxDeltaY, maxDeltaY);
-      nextPos.y = prevPos.y + clampedDeltaY;
+      nextPos.y = this.getSmoothedElevation(naturalTerrainY, prevPos.y, segLength);
 
       this.controlPoints.set(i, nextPos);
       this.controlDirections.set(i, currentDir);
-      this.lastGeneratedIndex = i;
+      this.highestGeneratedIndex = i;
     }
+
+    while (this.lowestGeneratedIndex > targetIndex) {
+      const i = this.lowestGeneratedIndex - 1;
+      const nextPos = this.controlPoints.get(i + 1)!;
+      const nextDir = this.controlDirections.get(i + 1)!;
+      const previousDir = nextDir.clone();
+
+      const rot = new THREE.Matrix4().makeRotationY(-this.getTurnAngle(i + 1));
+      previousDir.applyMatrix4(rot).normalize();
+
+      const previousPos = nextPos.clone().addScaledVector(nextDir, -segLength);
+      const naturalTerrainY = TerrainUtils.fbmHighwayGrade2D(
+        previousPos.x,
+        previousPos.z,
+        this.noise2D
+      );
+      previousPos.y = this.getSmoothedElevation(naturalTerrainY, nextPos.y, segLength);
+
+      this.controlPoints.set(i, previousPos);
+      this.controlDirections.set(i, previousDir);
+      this.lowestGeneratedIndex = i;
+    }
+  }
+
+  private getTurnAngle(index: number): number {
+    const curveNoise = this.noise2D(
+      index * CONFIG.road.curveNoiseFrequency,
+      CONFIG.road.curveNoiseOffset
+    );
+    return curveNoise * CONFIG.road.maxCurveAngle * CONFIG.road.curveStrength;
+  }
+
+  private getSmoothedElevation(
+    naturalTerrainY: number,
+    adjacentElevation: number,
+    segmentLength: number
+  ): number {
+    const maxDeltaY = segmentLength * CONFIG.road.maxGrade;
+    const rawDeltaY = naturalTerrainY - adjacentElevation;
+    const smoothedDeltaY = rawDeltaY * CONFIG.road.elevationSmoothing;
+    return adjacentElevation + THREE.MathUtils.clamp(smoothedDeltaY, -maxDeltaY, maxDeltaY);
   }
 
   public getChunkControlPoints(chunkIndex: number): THREE.Vector3[] {
     const startIdx = chunkIndex * POINTS_PER_CHUNK - 2;
     const endIdx = (chunkIndex + 1) * POINTS_PER_CHUNK + 2;
+    this.ensureControlPoints(startIdx);
     this.ensureControlPoints(endIdx);
 
     const points: THREE.Vector3[] = [];
@@ -148,10 +176,11 @@ export class RoadManager {
   }
 
   private initStartingChunks(): void {
-    for (let i = 0; i < CONFIG.road.activeChunksAhead + 1; i++) {
+    for (let i = -CONFIG.road.activeChunksBehind; i <= CONFIG.road.activeChunksAhead; i++) {
       const chunk = this.createChunk(i);
       this.chunks.push(chunk);
       this.roadGroup.add(chunk.group);
+      this.currentLowestChunkIndex = Math.min(this.currentLowestChunkIndex, i);
       this.currentHighestChunkIndex = i;
     }
   }
@@ -182,6 +211,16 @@ export class RoadManager {
       this.currentHighestChunkIndex = newChunkIndex;
     }
 
+    // Spawn new chunks behind if needed
+    while (this.currentLowestChunkIndex > closestChunkIdx - CONFIG.road.activeChunksBehind) {
+      const newChunkIndex = this.currentLowestChunkIndex - 1;
+      const newChunk = this.createChunk(newChunkIndex);
+
+      this.chunks.unshift(newChunk);
+      this.roadGroup.add(newChunk.group);
+      this.currentLowestChunkIndex = newChunkIndex;
+    }
+
     // Remove old chunks behind
     while (this.chunks.length > 0 && this.chunks[0].chunkIndex < closestChunkIdx - CONFIG.road.activeChunksBehind) {
       const oldChunk = this.chunks.shift()!;
@@ -189,14 +228,18 @@ export class RoadManager {
       oldChunk.dispose();
     }
 
-    // Prune obsolete control points from memory
-    const minNeededCPIndex = (closestChunkIdx - CONFIG.road.activeChunksBehind - 1) * POINTS_PER_CHUNK - 2;
-    for (const key of this.controlPoints.keys()) {
-      if (key < minNeededCPIndex) {
-        this.controlPoints.delete(key);
-        this.controlDirections.delete(key);
-      }
+    // Remove old chunks ahead when travelling back toward lower indices
+    while (
+      this.chunks.length > 0
+      && this.chunks[this.chunks.length - 1].chunkIndex > closestChunkIdx + CONFIG.road.activeChunksAhead
+    ) {
+      const oldChunk = this.chunks.pop()!;
+      this.roadGroup.remove(oldChunk.group);
+      oldChunk.dispose();
     }
+
+    this.currentLowestChunkIndex = this.chunks[0].chunkIndex;
+    this.currentHighestChunkIndex = this.chunks[this.chunks.length - 1].chunkIndex;
   }
 
   /**

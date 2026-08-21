@@ -7,7 +7,11 @@ export interface GameConfig {
     activeChunksAhead: number;
     activeChunksBehind: number;
     maxCurveAngle: number;
-    maxElevationChange: number;
+    curveNoiseFrequency: number;
+    curveNoiseOffset: number;
+    curveStrength: number;
+    maxGrade: number;
+    elevationSmoothing: number;
   };
   roadside: {
     dhaba: RoadsideBusinessConfig;
@@ -64,7 +68,11 @@ export const CONFIG: GameConfig = {
     activeChunksAhead: 5,    // How far ahead road is generated (~1.1 km)
     activeChunksBehind: 2,   // Chunks retained behind before recycling
     maxCurveAngle: 0.35,     // Curvature intensity
-    maxElevationChange: 5.0  // Gentler rolling hills for smooth highway grade
+    curveNoiseFrequency: 0.044,
+    curveNoiseOffset: 12.3,
+    curveStrength: 0.38,
+    maxGrade: 0.045,
+    elevationSmoothing: 0.32
   },
   roadside: {
     dhaba: {

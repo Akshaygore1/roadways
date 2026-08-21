@@ -60,7 +60,10 @@ class Game {
     this.hud = new HUD(
       this.followCamera,
       this.environment,
-      () => this.car.reset(),
+      () => {
+        this.car.reset();
+        this.hud.updateAutopilotText(false);
+      },
       () => {
         const enabled = this.car.toggleAutopilot();
         this.hud.updateAutopilotText(enabled);

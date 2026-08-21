@@ -607,6 +607,7 @@ export class SplineChunk {
    */
   private buildProps(noise2D: (x: number, y: number) => number): void {
     const halfRoad = CONFIG.road.width * 0.5 + CONFIG.road.shoulderWidth + 0.3;
+    // Signed chainage keeps milestones monotonic across the arbitrary world origin.
     const kmNumber = (this.chunkIndex * 2) + 12;
 
     // 1. Milestone every chunk
@@ -694,7 +695,10 @@ export class SplineChunk {
     const businessTypes: RoadsideBusinessType[] = ['dhaba', 'chai'];
     const type = businessTypes.find((candidate) => {
       const businessConfig = CONFIG.roadside[candidate];
-      return this.chunkIndex % businessConfig.chunkInterval === businessConfig.chunkPhase;
+      const chunkPhase = (
+        (this.chunkIndex % businessConfig.chunkInterval) + businessConfig.chunkInterval
+      ) % businessConfig.chunkInterval;
+      return chunkPhase === businessConfig.chunkPhase;
     });
 
     if (!type) return null;

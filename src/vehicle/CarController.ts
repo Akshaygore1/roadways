@@ -36,19 +36,11 @@ export class CarController {
   }
 
   public reset(): void {
-    // Reset to start of current active road
-    const firstChunk = this.roadManager.chunks[0];
-    if (firstChunk && firstChunk.samples.length > 0) {
-      const sample = firstChunk.samples[2];
-      this.position.copy(sample.point);
-      this.position.y = sample.elevation;
-      this.forward.copy(sample.tangent).normalize();
-      this.yaw = Math.atan2(this.forward.x, this.forward.z);
-    } else {
-      this.position.set(0, 0, 0);
-      this.forward.set(0, 0, 1);
-      this.yaw = 0;
-    }
+    // Recover onto the nearest active road instead of returning to an artificial start.
+    const roadInfo = this.roadManager.getClosestRoadSample(this.position);
+    this.position.copy(roadInfo.point);
+    this.forward.copy(roadInfo.tangent).normalize();
+    this.yaw = Math.atan2(this.forward.x, this.forward.z);
 
     this.velocity.set(0, 0, 0);
     this.speedKmh = 0;

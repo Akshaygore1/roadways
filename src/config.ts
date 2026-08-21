@@ -9,6 +9,11 @@ export interface GameConfig {
     maxCurveAngle: number;
     maxElevationChange: number;
   };
+  roadside: {
+    dhaba: RoadsideBusinessConfig;
+    chai: RoadsideBusinessConfig;
+    curveSideThreshold: number;
+  };
   physics: {
     maxSpeed: number;        // in km/h
     acceleration: number;
@@ -32,6 +37,14 @@ export interface GameConfig {
   };
 }
 
+export interface RoadsideBusinessConfig {
+  chunkInterval: number;
+  chunkPhase: number;
+  sampleFraction: number;
+  setback: number;
+  clearanceSamples: number;
+}
+
 export const CONFIG: GameConfig = {
   road: {
     width: 9.0,              // 2-lane Indian highway width
@@ -42,6 +55,23 @@ export const CONFIG: GameConfig = {
     activeChunksBehind: 2,   // Chunks retained behind before recycling
     maxCurveAngle: 0.35,     // Curvature intensity
     maxElevationChange: 5.0  // Gentler rolling hills for smooth highway grade
+  },
+  roadside: {
+    dhaba: {
+      chunkInterval: 5,      // One full-service dhaba about every 1.1km
+      chunkPhase: 0,
+      sampleFraction: 0.24,
+      setback: 7.0,          // Distance beyond the outer shoulder to the building center
+      clearanceSamples: 8
+    },
+    chai: {
+      chunkInterval: 5,
+      chunkPhase: 1,
+      sampleFraction: 0.42,
+      setback: 5.2,
+      clearanceSamples: 6
+    },
+    curveSideThreshold: 0.003
   },
   physics: {
     maxSpeed: 115,           // km/h (heavy diesel engine)

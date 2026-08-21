@@ -385,6 +385,42 @@ export class TextureGenerator {
   }
 
   /**
+   * Generates hand-painted roadside business boards for dhabas and chai stalls.
+   */
+  public static createRoadsideBusinessSignTexture(type: 'dhaba' | 'chai'): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+
+    const isDhaba = type === 'dhaba';
+    ctx.fillStyle = isDhaba ? '#f4b942' : '#d94b32';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = isDhaba ? '#1f5b3a' : '#f5d76e';
+    ctx.lineWidth = 22;
+    ctx.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
+
+    ctx.fillStyle = isDhaba ? '#183a2a' : '#fff4cf';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 92px "Arial Black", "Noto Sans Devanagari", sans-serif';
+    ctx.fillText(isDhaba ? 'HIGHWAY DHABA' : 'CHAI  •  चाय', canvas.width * 0.5, 103);
+
+    ctx.fillStyle = isDhaba ? '#7b261b' : '#fff0b3';
+    ctx.font = '700 40px "Noto Sans Devanagari", Arial, sans-serif';
+    ctx.fillText(
+      isDhaba ? 'गरमा गरम खाना  •  शुद्ध शाकाहारी' : 'CUTTING CHAI  •  ₹10',
+      canvas.width * 0.5,
+      195
+    );
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+  }
+
+  /**
    * Generates authentic Indian truck cargo side (Dala) wooden art texture.
    */
   public static createTruckDalaSideTexture(): THREE.CanvasTexture {

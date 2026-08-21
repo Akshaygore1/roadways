@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../config';
 import { TextureGenerator } from './Textures';
 import { TerrainUtils } from './TerrainUtils';
+import { RoadsideBusiness, RoadsideBusinessType } from './RoadsideBusiness';
 
 export interface RoadSample {
   point: THREE.Vector3;
@@ -12,6 +13,14 @@ export interface RoadSample {
   banking: number;     // Superelevation in radians
   curvature: number;   // Curvature kappa
 }
+
+interface RoadsideBusinessSite {
+  type: RoadsideBusinessType;
+  sampleIndex: number;
+  side: RoadSide;
+}
+
+type RoadSide = -1 | 1;
 
 export class SplineChunk {
   public chunkIndex: number;
@@ -516,10 +525,15 @@ export class SplineChunk {
     // 3. W-Beam Metal Guardrails along sharp curves or steep drop-offs
     this.buildGuardrails();
 
-    // 4. Diverse Indian Roadside Trees (Gulmohar, Banyan, Neem, Palm)
+    // 4. Roadside dhabas and chai stalls on quieter, guardrail-free verges
+    const businessSite = this.buildRoadsideBusiness(noise2D);
+
+    // 5. Diverse Indian Roadside Trees (Gulmohar, Banyan, Neem, Palm)
     for (let i = 3; i < this.samples.length - 3; i += 4) {
       const s = this.samples[i];
       const side = (i % 8 === 0) ? -1 : 1;
+      if (this.isInsideBusinessClearance(businessSite, i, side)) continue;
+
       const lateralDist = halfRoad + 4.5 + (i % 5) * 4.2;
       const treePos = s.point.clone().addScaledVector(s.binormal, side * lateralDist);
 
@@ -535,10 +549,12 @@ export class SplineChunk {
       this.propsGroup.add(tree);
     }
 
-    // 5. Roadside Bush Clusters & Rock Boulders
+    // 6. Roadside Bush Clusters & Rock Boulders
     for (let i = 2; i < this.samples.length - 2; i += 3) {
       const s = this.samples[i];
       const side = (i % 2 === 0) ? -1 : 1;
+      if (this.isInsideBusinessClearance(businessSite, i, side)) continue;
+
       const dist = halfRoad + 1.6 + ((i * 3) % 4) * 2.2;
       const propPos = s.point.clone().addScaledVector(s.binormal, side * dist);
       propPos.y = TerrainUtils.getEngineeredHeight(propPos.x, propPos.z, s.point, side * dist, noise2D, s.binormal, s.normal);
@@ -557,6 +573,66 @@ export class SplineChunk {
         this.propsGroup.add(boulder);
       }
     }
+  }
+
+  private buildRoadsideBusiness(
+    noise2D: (x: number, y: number) => number
+  ): RoadsideBusinessSite | null {
+    const businessTypes: RoadsideBusinessType[] = ['dhaba', 'chai'];
+    const type = businessTypes.find((candidate) => {
+      const businessConfig = CONFIG.roadside[candidate];
+      return this.chunkIndex % businessConfig.chunkInterval === businessConfig.chunkPhase;
+    });
+
+    if (!type) return null;
+
+    const businessConfig = CONFIG.roadside[type];
+    const sampleIndex = Math.floor(this.samples.length * businessConfig.sampleFraction);
+    const sample = this.samples[sampleIndex];
+
+    // Prefer the inside of a bend to avoid guardrails; alternate sides on straights.
+    const side: RoadSide = Math.abs(sample.curvature) > CONFIG.roadside.curveSideThreshold
+      ? (sample.curvature > 0 ? 1 : -1)
+      : (this.chunkIndex % 2 === 0 ? -1 : 1);
+    const shoulderEdge = CONFIG.road.width * 0.5 + CONFIG.road.shoulderWidth;
+    const lateralDistance = shoulderEdge + businessConfig.setback;
+    const businessPosition = sample.point.clone().addScaledVector(
+      sample.binormal,
+      side * lateralDistance
+    );
+    businessPosition.y = TerrainUtils.getEngineeredHeight(
+      businessPosition.x,
+      businessPosition.z,
+      sample.point,
+      side * lateralDistance,
+      noise2D,
+      sample.binormal,
+      sample.normal
+    );
+
+    const towardRoad = sample.binormal.clone().multiplyScalar(-side);
+    towardRoad.y = 0;
+    towardRoad.normalize();
+    const worldUp = new THREE.Vector3(0, 1, 0);
+    const localX = new THREE.Vector3().crossVectors(worldUp, towardRoad).normalize();
+    const localY = new THREE.Vector3().crossVectors(towardRoad, localX).normalize();
+    const orientation = new THREE.Matrix4().makeBasis(localX, localY, towardRoad);
+
+    const business = RoadsideBusiness.create(type, this.chunkIndex);
+    business.position.copy(businessPosition);
+    business.quaternion.setFromRotationMatrix(orientation);
+    this.propsGroup.add(business);
+
+    return { type, sampleIndex, side };
+  }
+
+  private isInsideBusinessClearance(
+    site: RoadsideBusinessSite | null,
+    sampleIndex: number,
+    side: RoadSide
+  ): boolean {
+    if (!site || side !== site.side) return false;
+    return Math.abs(sampleIndex - site.sampleIndex) <= CONFIG.roadside[site.type].clearanceSamples;
   }
 
   /**
@@ -863,9 +939,31 @@ export class SplineChunk {
   }
 
   public dispose(): void {
+    const disposedMaterials = new Set<THREE.Material>();
+    const disposedTextures = new Set<THREE.Texture>();
+
     this.group.traverse((obj) => {
       if (obj instanceof THREE.Mesh) {
         obj.geometry.dispose();
+      }
+    });
+
+    // Road, shoulder, and terrain materials are shared by RoadManager. Prop
+    // materials are chunk-owned and must be released when scenery is recycled.
+    this.propsGroup.traverse((obj) => {
+      if (!(obj instanceof THREE.Mesh)) return;
+      const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const material of materials) {
+        if (disposedMaterials.has(material)) continue;
+        disposedMaterials.add(material);
+
+        for (const value of Object.values(material)) {
+          if (value instanceof THREE.Texture && !disposedTextures.has(value)) {
+            disposedTextures.add(value);
+            value.dispose();
+          }
+        }
+        material.dispose();
       }
     });
   }

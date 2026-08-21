@@ -88,57 +88,327 @@
             }
 
             .game-brand {
+                position: relative;
                 pointer-events: auto;
-                padding: 9px 12px 8px;
-                background: var(--hud-surface);
-                border-top: 2px solid var(--hud-amber);
-                border-radius: 0 0 var(--hud-radius-sm) var(--hud-radius-sm);
-                box-shadow: 0 3px 8px rgba(0, 0, 0, 0.28);
+                min-width: 190px;
+                padding: 9px 18px 8px;
+                overflow: hidden;
+                background: var(--hud-amber);
+                border: 1px solid #ffdb98;
+                border-radius: 2px;
+                box-shadow:
+                    0 3px 0 rgba(8, 12, 15, 0.88),
+                    0 6px 8px rgba(0, 0, 0, 0.22);
+                color: #17120b;
+            }
+            .game-brand::before,
+            .game-brand::after {
+                content: "";
+                position: absolute;
+                top: 50%;
+                width: 4px;
+                height: 4px;
+                border-radius: 50%;
+                background: rgba(23, 18, 11, 0.52);
+                transform: translateY(-50%);
+            }
+            .game-brand::before {
+                left: 7px;
+            }
+            .game-brand::after {
+                right: 7px;
             }
             .brand-title {
-                font-size: 20px;
+                font-size: 19px;
                 font-weight: 800;
                 line-height: 1;
-                letter-spacing: 1.6px;
+                letter-spacing: 1.4px;
                 text-transform: uppercase;
-                color: var(--hud-amber);
+                color: #17120b;
             }
             .brand-sub {
-                font-size: 11px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: var(--space-3);
+                margin-top: 5px;
+                font-family: "JetBrains Mono", monospace;
+                font-size: 8px;
                 font-weight: 600;
-                letter-spacing: 0.8px;
-                color: var(--hud-muted);
+                letter-spacing: 0.55px;
+                color: rgba(23, 18, 11, 0.76);
                 text-transform: uppercase;
+            }
+            .brand-route {
+                padding-left: var(--space-2);
+                border-left: 1px solid rgba(23, 18, 11, 0.34);
+                color: #17120b;
+                font-weight: 700;
+            }
+
+            .top-left-hud {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--space-2);
+                pointer-events: none;
+            }
+
+            .music-player {
+                --music-tuner-position: 12.5%;
+                position: relative;
+                width: 190px;
+                color: var(--hud-text);
+                pointer-events: auto;
+            }
+            .music-player-toggle {
+                width: 190px;
+                min-height: 34px;
+                padding: 0 10px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                background: rgba(8, 12, 15, 0.9);
+                border: 1px solid rgba(255, 193, 90, 0.58);
+                border-radius: 2px;
+                color: var(--hud-text);
+                cursor: pointer;
+                font: inherit;
+                transition:
+                    background-color var(--hud-transition),
+                    border-color var(--hud-transition);
+            }
+            .music-player-toggle:hover {
+                background: var(--hud-surface-raised);
+                border-color: var(--hud-amber);
+            }
+            .music-player-toggle:focus-visible,
+            .music-mood:focus-visible,
+            .music-player-fallback:focus-visible {
+                outline: 2px solid var(--hud-amber);
+                outline-offset: 2px;
+            }
+            .music-live-dot {
+                width: 6px;
+                height: 6px;
+                flex: 0 0 auto;
+                border-radius: 50%;
+                background: var(--hud-amber);
+                box-shadow: 0 0 6px rgba(255, 193, 90, 0.78);
+            }
+            .music-player-name {
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 0.8px;
+            }
+            .music-player-current {
+                min-width: 0;
+                flex: 1;
+                overflow: hidden;
+                color: var(--hud-muted);
+                font-family: "JetBrains Mono", monospace;
+                font-size: 8px;
+                font-weight: 600;
+                text-align: right;
+                text-overflow: ellipsis;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+            .music-player-chevron {
+                width: 7px;
+                height: 7px;
+                flex: 0 0 auto;
+                border-right: 1.5px solid currentColor;
+                border-bottom: 1.5px solid currentColor;
+                transform: translateY(-2px) rotate(45deg);
+                transition: transform var(--hud-transition);
+            }
+            .music-player.is-expanded .music-player-chevron {
+                transform: translateY(2px) rotate(225deg);
+            }
+            .music-player-panel {
+                position: absolute;
+                z-index: 2;
+                top: calc(100% + 6px);
+                left: 0;
+                width: 364px;
+                padding: var(--space-3);
+                background: rgba(8, 12, 15, 0.97);
+                border: 1px solid rgba(255, 193, 90, 0.48);
+                border-radius: 2px;
+                box-shadow: 0 6px 8px rgba(0, 0, 0, 0.38);
+                animation: music-panel-in var(--hud-transition) both;
+            }
+            .music-player-panel[hidden] {
+                display: none;
+            }
+            .music-tuner-head {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                margin-bottom: 10px;
+                font-family: "JetBrains Mono", monospace;
+            }
+            .music-tuner-label {
+                color: var(--hud-muted);
+                font-size: 8px;
+                font-weight: 600;
+                letter-spacing: 1px;
+                text-transform: uppercase;
+            }
+            .music-tuner-band {
+                color: var(--hud-amber);
+                font-size: 9px;
+                font-weight: 600;
+            }
+            .music-moods {
+                position: relative;
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                padding-bottom: 18px;
+            }
+            .music-moods::after {
+                content: "";
+                position: absolute;
+                right: 8px;
+                bottom: 8px;
+                left: 8px;
+                height: 1px;
+                background: rgba(247, 248, 245, 0.28);
+            }
+            .music-mood {
+                min-width: 0;
+                min-height: 44px;
+                padding: 3px 4px 6px;
+                background: transparent;
+                border: 0;
+                border-radius: 2px;
+                color: var(--hud-muted);
+                cursor: pointer;
+                font: inherit;
+                transition:
+                    color var(--hud-transition),
+                    background-color var(--hud-transition);
+            }
+            .music-mood:hover {
+                background: rgba(255, 193, 90, 0.1);
+                color: var(--hud-text);
+            }
+            .music-mood.is-selected {
+                color: var(--hud-amber);
+            }
+            .music-mood-name {
+                display: block;
+                overflow: hidden;
+                font-size: 10px;
+                font-weight: 700;
+                line-height: 1.1;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .music-frequency {
+                display: block;
                 margin-top: 4px;
+                font-family: "JetBrains Mono", monospace;
+                font-size: 7px;
+                font-weight: 600;
+                letter-spacing: 0.2px;
+            }
+            .music-tuning-marker {
+                position: absolute;
+                z-index: 1;
+                bottom: 4px;
+                left: var(--music-tuner-position);
+                width: 8px;
+                height: 8px;
+                background: var(--hud-amber);
+                box-shadow: 0 0 6px rgba(255, 193, 90, 0.7);
+                transform: translateX(-50%) rotate(45deg);
+                transition: left 220ms cubic-bezier(0.25, 1, 0.5, 1);
+            }
+            .music-player-embed {
+                display: block;
+                width: 100%;
+                height: 152px;
+                margin-top: var(--space-2);
+                border: 0;
+                border-radius: 6px;
+                background: #171717;
+            }
+            .music-player-foot {
+                display: flex;
+                justify-content: flex-end;
+                margin-top: 7px;
+            }
+            .music-player-fallback {
+                color: var(--hud-muted);
+                font-family: "JetBrains Mono", monospace;
+                font-size: 10px;
+                font-weight: 600;
+                text-decoration-color: rgba(255, 193, 90, 0.7);
+                text-underline-offset: 3px;
+                transition: color var(--hud-transition);
+                user-select: text;
+            }
+            .music-player-fallback:hover {
+                color: var(--hud-amber);
+            }
+
+            @keyframes music-panel-in {
+                from {
+                    opacity: 0;
+                    transform: translateY(-4px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
             }
 
             .top-controls {
                 display: flex;
-                gap: var(--space-2);
+                gap: 1px;
+                padding: 4px;
+                background: rgba(8, 12, 15, 0.8);
+                -webkit-backdrop-filter: blur(14px) saturate(1.15);
+                backdrop-filter: blur(14px) saturate(1.15);
+                border: 1px solid rgba(255, 193, 90, 0.34);
+                border-radius: 4px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.34);
                 pointer-events: auto;
             }
 
             .hud-btn {
-                background: var(--hud-surface);
-                border: 1px solid var(--hud-border);
+                position: relative;
+                background: rgba(247, 248, 245, 0.045);
+                border: 0;
                 color: var(--hud-text);
-                width: 40px;
-                height: 40px;
-                min-height: 40px;
+                width: 42px;
+                height: 42px;
+                min-height: 42px;
                 padding: 0;
-                border-radius: var(--hud-radius-sm);
+                border-radius: 2px;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
                 transition:
                     color var(--hud-transition),
                     background-color var(--hud-transition),
-                    border-color var(--hud-transition),
                     transform var(--hud-transition);
                 outline: none;
                 user-select: none;
+            }
+            .hud-btn::after {
+                content: attr(data-key);
+                position: absolute;
+                right: 4px;
+                bottom: 3px;
+                color: rgba(247, 248, 245, 0.46);
+                font-family: "JetBrains Mono", monospace;
+                font-size: 7px;
+                font-weight: 600;
+                line-height: 1;
             }
             .hud-btn:focus,
             .touch-btn:focus {
@@ -150,14 +420,11 @@
                 outline-offset: 2px;
             }
             .hud-btn:hover {
-                background: var(--hud-surface-raised);
-                border-color: var(--hud-border-strong);
+                background: rgba(255, 193, 90, 0.14);
                 color: var(--hud-amber);
-                transform: translateY(-1px);
             }
             .hud-btn:active {
-                background: var(--hud-surface-pressed);
-                border-color: var(--hud-amber-strong);
+                background: rgba(255, 193, 90, 0.22);
                 transform: translateY(1px);
             }
             .hud-icon {
@@ -166,18 +433,15 @@
                 justify-content: center;
             }
             .hud-btn .lucide {
-                width: 18px;
-                height: 18px;
+                width: 17px;
+                height: 17px;
                 stroke-width: 2.2px;
             }
 
             /* Bottom HUD section */
             .bottom-bar {
-                display: grid;
-                grid-template-columns: minmax(280px, 1fr) auto minmax(
-                        280px,
-                        1fr
-                    );
+                display: flex;
+                justify-content: space-between;
                 align-items: flex-end;
                 gap: var(--space-6);
             }
@@ -248,57 +512,86 @@
             }
 
             .controls-hint {
-                background: var(--hud-surface);
-                border: 1px solid var(--hud-border);
-                border-radius: var(--hud-radius);
-                padding: var(--space-3) var(--space-4);
-                font-size: 10px;
-                font-weight: 400;
+                width: 224px;
+                padding: 0 var(--space-3) var(--space-3);
+                background: rgba(8, 12, 15, 0.78);
+                -webkit-backdrop-filter: blur(14px) saturate(1.15);
+                backdrop-filter: blur(14px) saturate(1.15);
+                border: 1px solid rgba(255, 193, 90, 0.38);
+                clip-path: polygon(
+                    0 0,
+                    calc(100% - 14px) 0,
+                    100% 14px,
+                    100% 100%,
+                    0 100%
+                );
                 color: var(--hud-muted);
-                line-height: 1.35;
-                box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.36);
                 display: grid;
-                grid-template-columns: repeat(3, minmax(112px, 1fr));
-                gap: var(--space-2) var(--space-3);
+                grid-template-columns: 1fr;
                 justify-self: end;
+            }
+            .controls-hint::before {
+                content: "DRIVER CONTROLS";
+                margin: 0 calc(var(--space-3) * -1) var(--space-1);
+                padding: 9px var(--space-3) 8px;
+                background: rgba(255, 193, 90, 0.12);
+                border-bottom: 1px solid rgba(255, 193, 90, 0.3);
+                color: var(--hud-amber);
+                font-family: "JetBrains Mono", monospace;
+                font-size: 9px;
+                font-weight: 600;
+                letter-spacing: 1.35px;
+                line-height: 1;
             }
             .control-row {
                 display: grid;
-                grid-template-columns: minmax(40px, auto) 8px 1fr;
+                grid-template-columns: 1fr auto;
                 align-items: center;
-                gap: var(--space-1);
+                min-height: 29px;
+                gap: var(--space-3);
+                padding: 4px 2px;
+                border-bottom: 1px solid rgba(247, 248, 245, 0.09);
                 white-space: nowrap;
             }
-            .control-row::before {
-                content: "\2014";
-                grid-column: 2;
-                grid-row: 1;
-                color: rgba(247, 248, 245, 0.38);
-                text-align: center;
+            .control-row:nth-child(5) {
+                margin-top: 5px;
+                padding-top: 8px;
+                border-top: 1px solid rgba(255, 193, 90, 0.3);
+            }
+            .control-row:last-child {
+                border-bottom: 0;
             }
             .control-keys {
                 grid-column: 1;
-                grid-row: 1;
                 display: flex;
-                justify-content: flex-end;
                 align-items: center;
-                gap: 2px;
+                gap: 4px;
             }
             .control-action {
-                grid-column: 3;
-                grid-row: 1;
-                color: var(--hud-muted);
+                grid-column: 2;
+                color: #d8dddf;
+                font-family: "Outfit", sans-serif;
+                font-size: 11px;
+                font-weight: 600;
+                letter-spacing: 0.1px;
             }
             .key-badge {
-                display: inline-block;
-                padding: 1px 6px;
-                background: #2b3338;
-                border: 1px solid rgba(247, 248, 245, 0.22);
-                border-radius: 3px;
+                display: inline-flex;
+                min-width: 24px;
+                height: 21px;
+                padding: 0 6px;
+                align-items: center;
+                justify-content: center;
+                background: rgba(247, 248, 245, 0.08);
+                border: 1px solid rgba(247, 248, 245, 0.28);
+                border-radius: 2px;
+                box-shadow: inset 0 -2px rgba(0, 0, 0, 0.32);
                 font-weight: 600;
                 color: var(--hud-text);
                 font-family: "JetBrains Mono", monospace;
-                font-size: 10px;
+                font-size: 9px;
+                line-height: 1;
                 margin: 0;
             }
 
@@ -379,43 +672,27 @@
                 height: 16px;
             }
             .hud-btn.autopilot-active {
-                background: var(--hud-green-surface);
-                border-color: var(--hud-green-border);
+                background: rgba(69, 201, 107, 0.16);
                 color: #effff3;
+                box-shadow: inset 0 -2px var(--hud-green);
             }
             .hud-btn.autopilot-active:hover {
-                background: #1b4a2e;
-                border-color: var(--hud-green);
+                background: rgba(69, 201, 107, 0.24);
                 color: #ffffff;
             }
             .hud-btn.headlights-active {
-                background: #493315;
-                border-color: var(--hud-amber-strong);
+                background: rgba(255, 193, 90, 0.16);
                 color: var(--hud-amber);
+                box-shadow: inset 0 -2px var(--hud-amber);
             }
             .hud-btn.headlights-active:hover {
-                background: #5b4019;
-                border-color: var(--hud-amber);
+                background: rgba(255, 193, 90, 0.24);
                 color: #ffe1ad;
             }
 
             @media (max-width: 1199px) {
                 .bottom-bar {
-                    grid-template-columns: 1fr auto;
-                    gap: var(--space-3) var(--space-6);
-                }
-                .controls-hint {
-                    grid-column: 1 / -1;
-                    grid-row: 1;
-                    justify-self: stretch;
-                }
-                .speed-cluster {
-                    grid-column: 1;
-                    grid-row: 2;
-                }
-                .metrics-box {
-                    grid-column: 2;
-                    grid-row: 2;
+                    gap: var(--space-3);
                 }
             }
 
@@ -430,22 +707,57 @@
                     gap: var(--space-3);
                 }
                 .game-brand {
-                    padding: var(--space-2);
+                    min-width: 132px;
+                    padding: var(--space-2) var(--space-3);
+                }
+                .music-player,
+                .music-player-toggle {
+                    width: 132px;
+                }
+                .music-player.is-expanded {
+                    position: fixed;
+                    right: var(--space-4);
+                    bottom: calc(
+                        env(safe-area-inset-bottom, 0px) + 174px
+                    );
+                    left: var(--space-4);
+                    width: auto;
+                    max-width: 420px;
+                    margin-inline: auto;
+                }
+                .music-player.is-expanded .music-player-toggle {
+                    width: 100%;
+                }
+                .music-player.is-expanded .music-player-panel {
+                    position: static;
+                    width: 100%;
+                    max-height: calc(
+                        100dvh - env(safe-area-inset-bottom, 0px) - 228px
+                    );
+                    margin-top: var(--space-1);
+                    overflow-y: auto;
+                    overscroll-behavior: contain;
+                }
+                .music-player-current {
+                    font-size: 7px;
                 }
                 .brand-title {
-                    font-size: 16px;
-                    letter-spacing: 1px;
+                    font-size: 15px;
+                    letter-spacing: 0.9px;
                 }
                 .brand-sub {
-                    max-width: 132px;
-                    font-size: 8px;
-                    line-height: 1.2;
-                    letter-spacing: 0.55px;
+                    gap: var(--space-1);
+                    font-size: 7px;
+                    letter-spacing: 0.25px;
+                }
+                .brand-route {
+                    padding-left: var(--space-1);
                 }
                 .top-controls {
                     display: grid;
                     grid-template-columns: repeat(3, 44px);
-                    gap: var(--space-1);
+                    gap: 1px;
+                    padding: 3px;
                 }
                 .hud-btn {
                     width: 44px;
@@ -456,11 +768,7 @@
                     display: none;
                 }
                 .bottom-bar {
-                    grid-template-columns: 1fr auto;
                     gap: var(--space-4);
-                }
-                .speed-cluster {
-                    grid-row: 1;
                 }
                 .speed-val {
                     font-size: 40px;
@@ -488,8 +796,16 @@
 
             @media (prefers-reduced-motion: reduce) {
                 .hud-btn,
-                .touch-btn {
+                .touch-btn,
+                .music-player-toggle,
+                .music-player-chevron,
+                .music-mood,
+                .music-tuning-marker,
+                .music-player-fallback {
                     transition-duration: 0.01ms;
+                }
+                .music-player-panel {
+                    animation: none;
                 }
             }
         </style>
@@ -499,15 +815,135 @@
 
         <div class="hud-overlay">
             <div class="top-bar">
-                <div class="game-brand">
-                    <div class="brand-title">DESI TRUCK</div>
-                    <div class="brand-sub">HORN OK PLEASE &bull; NH 44</div>
+                <div class="top-left-hud">
+                    <div class="game-brand">
+                        <div class="brand-title">DESI TRUCK</div>
+                        <div class="brand-sub">
+                            <span>HORN OK PLEASE</span>
+                            <span class="brand-route">NH 44</span>
+                        </div>
+                    </div>
+
+                    <section
+                        id="music-player"
+                        class="music-player"
+                        aria-label="DESI FM Spotify radio"
+                    >
+                        <button
+                            id="music-player-toggle"
+                            class="music-player-toggle"
+                            type="button"
+                            aria-expanded="false"
+                            aria-controls="music-player-panel"
+                            aria-label="Open DESI FM, Highway selected"
+                        >
+                            <span class="music-live-dot" aria-hidden="true"></span>
+                            <span class="music-player-name">DESI FM</span>
+                            <span
+                                id="music-player-current"
+                                class="music-player-current"
+                            >Highway</span>
+                            <span
+                                class="music-player-chevron"
+                                aria-hidden="true"
+                            ></span>
+                        </button>
+
+                        <div
+                            id="music-player-panel"
+                            class="music-player-panel"
+                            hidden
+                        >
+                            <div class="music-tuner-head" aria-hidden="true">
+                                <span class="music-tuner-label">Tune your route</span>
+                                <span class="music-tuner-band">FM / PLAYLIST</span>
+                            </div>
+
+                            <div
+                                class="music-moods"
+                                role="tablist"
+                                aria-label="Choose a music mood"
+                            >
+                                <button
+                                    class="music-mood is-selected"
+                                    type="button"
+                                    role="tab"
+                                    data-music-mood="highway"
+                                    aria-selected="true"
+                                    aria-controls="music-player-embed"
+                                >
+                                    <span class="music-mood-name">Highway</span>
+                                    <span class="music-frequency">88.1</span>
+                                </button>
+                                <button
+                                    class="music-mood"
+                                    type="button"
+                                    role="tab"
+                                    data-music-mood="long-drive"
+                                    aria-selected="false"
+                                    aria-controls="music-player-embed"
+                                    tabindex="-1"
+                                >
+                                    <span class="music-mood-name">Long drive</span>
+                                    <span class="music-frequency">93.5</span>
+                                </button>
+                                <button
+                                    class="music-mood"
+                                    type="button"
+                                    role="tab"
+                                    data-music-mood="punjabi"
+                                    aria-selected="false"
+                                    aria-controls="music-player-embed"
+                                    tabindex="-1"
+                                >
+                                    <span class="music-mood-name">Punjabi</span>
+                                    <span class="music-frequency">101.2</span>
+                                </button>
+                                <button
+                                    class="music-mood"
+                                    type="button"
+                                    role="tab"
+                                    data-music-mood="90s-bollywood"
+                                    aria-selected="false"
+                                    aria-controls="music-player-embed"
+                                    tabindex="-1"
+                                >
+                                    <span class="music-mood-name">90s Bollywood</span>
+                                    <span class="music-frequency">106.4</span>
+                                </button>
+                                <span
+                                    class="music-tuning-marker"
+                                    aria-hidden="true"
+                                ></span>
+                            </div>
+
+                            <iframe
+                                id="music-player-embed"
+                                class="music-player-embed"
+                                title="Spotify player: Highway"
+                                loading="lazy"
+                                allow="clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                allowfullscreen
+                            ></iframe>
+
+                            <div class="music-player-foot">
+                                <a
+                                    id="music-player-fallback"
+                                    class="music-player-fallback"
+                                    href="https://open.spotify.com/playlist/1fZoi2cNS8YfDKp5qzukyZ"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >Open in Spotify ↗</a>
+                            </div>
+                        </div>
+                    </section>
                 </div>
 
                 <div class="top-controls">
                     <button
                         id="btn-horn"
                         class="hud-btn"
+                        data-key="H"
                         tabindex="-1"
                         title="Blow Pressure Horn (H)"
                         aria-label="Blow Pressure Horn (H)"
@@ -519,6 +955,7 @@
                     <button
                         id="btn-theme"
                         class="hud-btn"
+                        data-key="T"
                         tabindex="-1"
                         title="Toggle Lighting Preset (T)"
                         aria-label="Toggle Lighting Preset (T)"
@@ -530,6 +967,7 @@
                     <button
                         id="btn-headlights"
                         class="hud-btn headlights-active"
+                        data-key="L"
                         tabindex="-1"
                         title="Turn Off Headlights (L)"
                         aria-label="Turn headlights off"
@@ -542,6 +980,7 @@
                     <button
                         id="btn-camera"
                         class="hud-btn"
+                        data-key="C"
                         tabindex="-1"
                         title="Switch Camera (C)"
                         aria-label="Switch Camera (C)"
@@ -553,6 +992,7 @@
                     <button
                         id="btn-reset"
                         class="hud-btn"
+                        data-key="R"
                         tabindex="-1"
                         title="Reset Truck Position (R)"
                         aria-label="Reset Truck Position (R)"
@@ -564,6 +1004,7 @@
                     <button
                         id="btn-autopilot"
                         class="hud-btn"
+                        data-key="P"
                         tabindex="-1"
                         title="Toggle Autopilot (P)"
                         aria-label="Toggle Autopilot (P)"
@@ -580,7 +1021,6 @@
                 id="autopilot-indicator"
                 class="autopilot-indicator"
                 style="display: none"
-            >
                 <span class="hud-icon"><i data-lucide="navigation"></i></span>
                 AUTOPILOT ACTIVE <span class="key-badge">P</span> to disengage
             </div>-->
@@ -608,7 +1048,8 @@
                     </div>
                     <div class="control-row">
                         <dt class="control-keys">
-                            <span class="key-badge">A/D</span>
+                            <span class="key-badge">A/D</span
+                            ><span class="key-badge">←/→</span>
                         </dt>
                         <dd class="control-action">Steer</dd>
                     </div>

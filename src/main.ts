@@ -6,6 +6,7 @@ import { Environment } from './world/Environment';
 import { CarController } from './vehicle/CarController';
 import { FollowCamera } from './camera/FollowCamera';
 import { HUD } from './ui/HUD';
+import { MusicPlayer } from './ui/MusicPlayer';
 
 class Game {
   private renderer: THREE.WebGLRenderer;
@@ -73,6 +74,7 @@ class Game {
         this.audio.playIndianAirHorn();
       }
     );
+    new MusicPlayer();
 
     // 5. Input key callbacks
     this.input.onHorn = () => {

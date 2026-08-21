@@ -304,13 +304,6 @@ export class CarModel {
     crown.castShadow = true;
     this.group.add(crown);
 
-    // Crown Roof Arch Crest
-    const crestGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 16, 1, false, 0, Math.PI);
-    const crest = new THREE.Mesh(crestGeo, crownMat);
-    crest.position.set(0, 3.07, 1.95);
-    crest.rotation.z = Math.PI;
-    this.group.add(crest);
-
     // Brass Finials on top of Crown
     const finialGeo = new THREE.SphereGeometry(0.07, 8, 8);
     const brassMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.2 });

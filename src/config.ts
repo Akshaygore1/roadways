@@ -59,6 +59,42 @@ export interface RoadsideBusinessConfig {
   gradingTransition: number;
 }
 
+export type MusicMoodId = 'highway' | 'long-drive' | 'punjabi' | '90s-bollywood';
+
+export interface MusicPlaylist {
+  id: MusicMoodId;
+  label: string;
+  frequency: string;
+  spotifyPlaylistId: string;
+}
+
+export const MUSIC_PLAYLISTS: readonly MusicPlaylist[] = [
+  {
+    id: 'highway',
+    label: 'Highway',
+    frequency: '88.1',
+    spotifyPlaylistId: '1fZoi2cNS8YfDKp5qzukyZ'
+  },
+  {
+    id: 'long-drive',
+    label: 'Long drive',
+    frequency: '93.5',
+    spotifyPlaylistId: '6hye6U1AOPw15cZdyI0rcm'
+  },
+  {
+    id: 'punjabi',
+    label: 'Punjabi',
+    frequency: '101.2',
+    spotifyPlaylistId: '37i9dQZF1DWZEYG45EmWYV'
+  },
+  {
+    id: '90s-bollywood',
+    label: '90s Bollywood',
+    frequency: '106.4',
+    spotifyPlaylistId: '7t63xDiHO5G2X3jpYBoDKk'
+  }
+] as const;
+
 export const CONFIG: GameConfig = {
   road: {
     width: 9.0,              // 2-lane Indian highway width

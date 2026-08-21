@@ -163,6 +163,66 @@ test('drives with the keyboard and resets the HUD metrics', async ({ page }) => 
   await expect(distance).toHaveText('0.0 KM');
 });
 
+test('drives while the FM player is open and focused', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium-desktop', 'Keyboard state coverage runs once');
+
+  const toggle = page.locator('#music-player-toggle');
+  const speed = page.locator('#hud-speed');
+
+  await toggle.click();
+  await expect(toggle).toBeFocused();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+  await page.keyboard.down('w');
+  try {
+    await expect.poll(() => readNumber(speed.textContent()), { timeout: 5_000 })
+      .toBeGreaterThan(0);
+  } finally {
+    await page.keyboard.up('w');
+  }
+});
+
+test('releases held throttle while focus is inside the FM player', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium-desktop', 'Keyboard state coverage runs once');
+
+  const toggle = page.locator('#music-player-toggle');
+  const speed = page.locator('#hud-speed');
+
+  await page.keyboard.down('w');
+  await expect.poll(() => readNumber(speed.textContent()), { timeout: 5_000 })
+    .toBeGreaterThan(10);
+
+  await toggle.click();
+  await expect(toggle).toBeFocused();
+  const speedAtRelease = await readNumber(speed.textContent());
+  await page.keyboard.up('w');
+
+  await expect.poll(() => readNumber(speed.textContent()), { timeout: 5_000 })
+    .toBeLessThan(speedAtRelease);
+});
+
+test('navigates FM moods with arrow keys without moving the truck', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium-desktop', 'Keyboard state coverage runs once');
+
+  const speed = page.locator('#hud-speed');
+  const highway = page.locator('[data-music-mood="highway"]');
+  const longDrive = page.locator('[data-music-mood="long-drive"]');
+
+  await page.locator('#music-player-toggle').click();
+  await highway.focus();
+  await page.keyboard.press('ArrowDown');
+
+  await expect(longDrive).toBeFocused();
+  await expect(longDrive).toHaveAttribute('aria-selected', 'true');
+  const samplingStartedAt = Date.now();
+  let maximumSpeed = 0;
+  await expect.poll(async () => {
+    maximumSpeed = Math.max(maximumSpeed, await readNumber(speed.textContent()));
+    return Date.now() - samplingStartedAt >= 1_000 ? maximumSpeed : null;
+  }, { timeout: 5_000, intervals: [50] }).toBe(0);
+  await expect(speed).toHaveText('0');
+});
+
 test('reverses and resets the truck', async ({ page }) => {
   const speed = page.locator('#hud-speed');
   const autopilot = page.locator('#btn-autopilot');

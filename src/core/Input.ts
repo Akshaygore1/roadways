@@ -51,6 +51,20 @@ export class InputManager {
       }
       this.keys[e.code] = false;
     });
+
+    window.addEventListener('blur', () => this.releaseInputs());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.releaseInputs();
+      }
+    });
+  }
+
+  private releaseInputs(): void {
+    this.keys = {};
+    this.throttle = 0;
+    this.steering = 0;
+    this.handbrake = false;
   }
 
   private setupTouch(): void {

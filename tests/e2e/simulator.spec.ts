@@ -26,21 +26,51 @@ test('loads the simulator canvas and initial HUD', async ({ page }) => {
   expect(pageErrors).toEqual([]);
 });
 
-test('cycles camera and lighting labels with buttons and keyboard', async ({ page }) => {
-  const cameraLabel = page.locator('#cam-text');
-  const themeLabel = page.locator('#theme-text');
+test('cycles camera and lighting presets with buttons and keyboard', async ({ page }) => {
+  const cameraBtn = page.locator('#btn-camera');
+  const themeBtn = page.locator('#btn-theme');
 
-  await expect(cameraLabel).toHaveText('Chase Cam');
-  await page.locator('#btn-camera').click();
-  await expect(cameraLabel).toHaveText('Hood Cam');
+  await expect(cameraBtn.locator('[data-lucide="camera"]')).toBeVisible();
+  await cameraBtn.click();
+  await expect(cameraBtn.locator('[data-lucide="eye"]')).toBeVisible();
   await page.keyboard.press('c');
-  await expect(cameraLabel).toHaveText('Drone Cam');
+  await expect(cameraBtn.locator('[data-lucide="video"]')).toBeVisible();
 
-  await expect(themeLabel).toHaveText('Golden Hour');
-  await page.locator('#btn-theme').click();
-  await expect(themeLabel).toHaveText('Monsoon Green');
+  await expect(themeBtn.locator('[data-lucide="sun"]')).toBeVisible();
+  await themeBtn.click();
+  await expect(themeBtn.locator('[data-lucide="cloud-rain"]')).toBeVisible();
   await page.keyboard.press('t');
-  await expect(themeLabel).toHaveText('Night Cruise');
+  await expect(themeBtn.locator('[data-lucide="moon"]')).toBeVisible();
+});
+
+test('toggles headlights independently with the button and keyboard', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium-desktop', 'Keyboard state coverage runs once');
+
+  const button = page.locator('#btn-headlights');
+
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await expect(button).toHaveAttribute('aria-label', 'Turn headlights off');
+  await expect(button).toHaveClass(/headlights-active/);
+  await expect(button.locator('[data-lucide="lightbulb"]')).toBeVisible();
+
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed', 'false');
+  await expect(button).toHaveAttribute('aria-label', 'Turn headlights on');
+  await expect(button).not.toHaveClass(/headlights-active/);
+  await expect(button.locator('[data-lucide="lightbulb-off"]')).toBeVisible();
+
+  await page.keyboard.press('l');
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await expect(button.locator('[data-lucide="lightbulb"]')).toBeVisible();
+
+  await page.keyboard.press('t');
+  await expect(page.locator('#btn-theme [data-lucide="cloud-rain"]')).toBeVisible();
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyL', repeat: true }));
+  });
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('toggles autopilot with the button and keyboard', async ({ page }) => {
@@ -94,5 +124,57 @@ test('mobile touch controls accelerate the truck', async ({ page }, testInfo) =>
       .toBeGreaterThan(0);
   } finally {
     await gas.dispatchEvent('pointerup', { pointerType: 'touch', isPrimary: true });
+  }
+});
+
+test('shows the aligned keyboard guide on desktop and hides it on mobile', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium-desktop', 'Custom viewport coverage runs once');
+
+  const guide = page.locator('.controls-hint');
+  await expect(guide).toBeVisible();
+  await expect(guide.locator('.control-row')).toHaveCount(9);
+  await expect(guide).toContainText('Headlights');
+  await expect(guide.locator('.control-row', { hasText: 'Headlights' }).locator('.key-badge')).toHaveText('L');
+
+  await page.setViewportSize({ width: 412, height: 915 });
+  await expect(guide).toBeHidden();
+});
+
+test('keeps HUD controls within representative viewports', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium-desktop', 'Custom viewport coverage runs once');
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 1024, height: 768 },
+    { width: 800, height: 800 },
+    { width: 412, height: 915 }
+  ]) {
+    await page.setViewportSize(viewport);
+
+    const bounds = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const bounds = document.querySelector(selector)?.getBoundingClientRect();
+        return bounds && {
+          x: bounds.x,
+          y: bounds.y,
+          width: bounds.width,
+          height: bounds.height
+        };
+      };
+      return {
+        toolbar: rect('.top-controls'),
+        bottom: rect('.bottom-bar'),
+        touch: rect('.touch-controls')
+      };
+    });
+    expect(bounds.toolbar).not.toBeNull();
+    expect(bounds.toolbar!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.toolbar!.x + bounds.toolbar!.width).toBeLessThanOrEqual(viewport.width + 1);
+
+    if (viewport.width <= 768) {
+      expect(bounds.bottom).not.toBeNull();
+      expect(bounds.touch).not.toBeNull();
+      expect(bounds.bottom!.y + bounds.bottom!.height).toBeLessThanOrEqual(bounds.touch!.y);
+    }
   }
 });

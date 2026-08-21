@@ -5,6 +5,7 @@ export class InputManager {
   public onCameraToggle?: () => void;
   public onReset?: () => void;
   public onThemeToggle?: () => void;
+  public onHeadlightsToggle?: () => void;
   public onAutopilotToggle?: () => void;
   public onHorn?: () => void;
 
@@ -35,6 +36,8 @@ export class InputManager {
         this.onReset?.();
       } else if (e.code === 'KeyT') {
         this.onThemeToggle?.();
+      } else if (e.code === 'KeyL' && !e.repeat) {
+        this.onHeadlightsToggle?.();
       } else if (e.code === 'KeyP') {
         this.onAutopilotToggle?.();
       } else if (e.code === 'KeyH') {

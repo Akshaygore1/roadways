@@ -65,6 +65,7 @@ class Game {
         const enabled = this.car.toggleAutopilot();
         this.hud.updateAutopilotText(enabled);
       },
+      () => this.car.toggleHeadlights(),
       () => {
         this.audio.playIndianAirHorn();
       }
@@ -88,6 +89,11 @@ class Game {
     this.input.onThemeToggle = () => {
       const theme = this.environment.toggleTheme();
       this.hud.updateThemeText(theme);
+    };
+
+    this.input.onHeadlightsToggle = () => {
+      const enabled = this.car.toggleHeadlights();
+      this.hud.updateHeadlightState(enabled);
     };
 
     this.input.onAutopilotToggle = () => {

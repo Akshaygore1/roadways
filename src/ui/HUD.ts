@@ -19,15 +19,15 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Lightbulb,
+  LightbulbOff
 } from 'lucide';
 
 export class HUD {
   private speedEl: HTMLElement | null;
   private distanceEl: HTMLElement | null;
   private fpsEl: HTMLElement | null;
-  private camTextEl: HTMLElement | null;
-  private themeTextEl: HTMLElement | null;
   private autopilotEl: HTMLElement | null;
 
   private frameCount: number = 0;
@@ -39,13 +39,12 @@ export class HUD {
     env: Environment,
     onReset: () => void,
     onAutopilotToggle: () => void,
+    onHeadlightsToggle: () => boolean,
     onHorn?: () => void
   ) {
     this.speedEl = document.getElementById('hud-speed');
     this.distanceEl = document.getElementById('hud-distance');
     this.fpsEl = document.getElementById('hud-fps');
-    this.camTextEl = document.getElementById('cam-text');
-    this.themeTextEl = document.getElementById('theme-text');
     this.autopilotEl = document.getElementById('autopilot-indicator');
 
     // Initialize all Lucide SVG icons
@@ -67,6 +66,14 @@ export class HUD {
         (e.currentTarget as HTMLElement)?.blur();
         const theme = env.toggleTheme();
         this.updateThemeText(theme);
+      });
+    }
+
+    const btnHeadlights = document.getElementById('btn-headlights');
+    if (btnHeadlights) {
+      btnHeadlights.addEventListener('click', (e) => {
+        (e.currentTarget as HTMLElement)?.blur();
+        this.updateHeadlightState(onHeadlightsToggle());
       });
     }
 
@@ -114,16 +121,19 @@ export class HUD {
         ChevronLeft,
         ChevronRight,
         ChevronDown,
-        ChevronUp
+        ChevronUp,
+        Lightbulb,
+        LightbulbOff
       }
     });
   }
 
   public updateCameraText(mode: CameraMode): void {
-    if (this.camTextEl) {
-      if (mode === 'chase') this.camTextEl.textContent = 'Chase Cam';
-      else if (mode === 'hood') this.camTextEl.textContent = 'Hood Cam';
-      else if (mode === 'drone') this.camTextEl.textContent = 'Drone Cam';
+    const btnCamera = document.getElementById('btn-camera');
+    const modeName = mode === 'chase' ? 'Chase Cam' : (mode === 'hood' ? 'Hood Cam' : 'Drone Cam');
+    if (btnCamera) {
+      btnCamera.title = `Switch Camera (C) [${modeName}]`;
+      btnCamera.setAttribute('aria-label', `Switch Camera, currently ${modeName}`);
     }
     const camIcon = document.getElementById('cam-icon');
     if (camIcon) {
@@ -134,10 +144,11 @@ export class HUD {
   }
 
   public updateThemeText(theme: LightingTheme): void {
-    if (this.themeTextEl) {
-      if (theme === 'golden') this.themeTextEl.textContent = 'Golden Hour';
-      else if (theme === 'monsoon') this.themeTextEl.textContent = 'Monsoon Green';
-      else if (theme === 'night') this.themeTextEl.textContent = 'Night Cruise';
+    const btnTheme = document.getElementById('btn-theme');
+    const themeName = theme === 'golden' ? 'Golden Hour' : (theme === 'monsoon' ? 'Monsoon Green' : 'Night Cruise');
+    if (btnTheme) {
+      btnTheme.title = `Toggle Lighting Preset (T) [${themeName}]`;
+      btnTheme.setAttribute('aria-label', `Toggle Lighting Preset, currently ${themeName}`);
     }
     const themeIcon = document.getElementById('theme-icon');
     if (themeIcon) {
@@ -154,6 +165,25 @@ export class HUD {
     const btnAutopilot = document.getElementById('btn-autopilot');
     if (btnAutopilot) {
       btnAutopilot.classList.toggle('autopilot-active', enabled);
+      btnAutopilot.setAttribute('aria-pressed', enabled.toString());
+      btnAutopilot.setAttribute('aria-label', enabled ? 'Disengage Autopilot' : 'Engage Autopilot');
+      btnAutopilot.title = `${enabled ? 'Disengage' : 'Toggle'} Autopilot (P)`;
+    }
+  }
+
+  public updateHeadlightState(enabled: boolean): void {
+    const button = document.getElementById('btn-headlights');
+    const icon = document.getElementById('headlights-icon');
+
+    if (button) {
+      button.classList.toggle('headlights-active', enabled);
+      button.setAttribute('aria-pressed', enabled.toString());
+      button.setAttribute('aria-label', enabled ? 'Turn headlights off' : 'Turn headlights on');
+      button.title = `${enabled ? 'Turn Off' : 'Turn On'} Headlights (L)`;
+    }
+    if (icon) {
+      icon.innerHTML = `<i data-lucide="${enabled ? 'lightbulb' : 'lightbulb-off'}"></i>`;
+      this.refreshIcons();
     }
   }
 

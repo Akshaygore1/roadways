@@ -21,6 +21,7 @@ export class CarModel {
   private cabMaterial: THREE.MeshStandardMaterial;
   private glassMaterial: THREE.MeshStandardMaterial;
   private brakeLightMaterial!: THREE.MeshStandardMaterial;
+  private headlightLensMaterial!: THREE.MeshStandardMaterial;
   private blackRubberMaterial: THREE.MeshStandardMaterial;
   private woodMaterial: THREE.MeshStandardMaterial;
 
@@ -350,7 +351,7 @@ export class CarModel {
     // 6. HEADLIGHTS & FRONT ILLUMINATION
     // ==========================================
     // Powerful Forward Road Spotlights
-    const headlightLensMat = new THREE.MeshStandardMaterial({
+    this.headlightLensMaterial = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       emissive: 0xfff5dd,
       emissiveIntensity: 2.5,
@@ -363,14 +364,14 @@ export class CarModel {
     const bezelGeo = new THREE.TorusGeometry(0.2, 0.035, 8, 16);
 
     // Left Headlight
-    const headL = new THREE.Mesh(headlightGeo, headlightLensMat);
+    const headL = new THREE.Mesh(headlightGeo, this.headlightLensMaterial);
     headL.position.set(-0.85, 1.15, 3.03);
     const bezL = new THREE.Mesh(bezelGeo, bezelMat);
     bezL.position.set(-0.85, 1.15, 3.07);
     this.group.add(headL, bezL);
 
     // Right Headlight
-    const headR = new THREE.Mesh(headlightGeo, headlightLensMat);
+    const headR = new THREE.Mesh(headlightGeo, this.headlightLensMaterial);
     headR.position.set(0.85, 1.15, 3.03);
     const bezR = new THREE.Mesh(bezelGeo, bezelMat);
     bezR.position.set(0.85, 1.15, 3.07);
@@ -665,6 +666,13 @@ export class CarModel {
       this.brakeLightMaterial.emissive.setHex(0x440000);
       this.brakeLightMaterial.emissiveIntensity = 0.6;
     }
+  }
+
+  public setHeadlightsEnabled(enabled: boolean): void {
+    this.headlights.forEach((headlight) => {
+      headlight.visible = enabled;
+    });
+    this.headlightLensMaterial.emissiveIntensity = enabled ? 2.5 : 0;
   }
 
   public updateWheelVisuals(steerAngle: number, spinDelta: number): void {

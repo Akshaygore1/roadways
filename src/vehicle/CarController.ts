@@ -15,6 +15,7 @@ export class CarController {
   public pitch: number = 0;
   public roll: number = 0;
   public distanceTraveledKm: number = 0;
+  public headlightsEnabled: boolean = true;
 
   private steerAngle: number = 0;
   private roadManager: RoadManager;
@@ -63,6 +64,12 @@ export class CarController {
   public toggleAutopilot(): boolean {
     this.autopilotEnabled = !this.autopilotEnabled;
     return this.autopilotEnabled;
+  }
+
+  public toggleHeadlights(): boolean {
+    this.headlightsEnabled = !this.headlightsEnabled;
+    this.model.setHeadlightsEnabled(this.headlightsEnabled);
+    return this.headlightsEnabled;
   }
 
   public update(delta: number): void {

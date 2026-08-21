@@ -53,7 +53,7 @@ class Game {
     this.environment = new Environment(this.scene);
     this.roadManager = new RoadManager(this.scene);
     this.car = new CarController(this.scene, this.roadManager, this.input);
-    this.followCamera = new FollowCamera(this.camera, this.car);
+    this.followCamera = new FollowCamera(this.camera, this.car, this.renderer.domElement);
     (window as any).game = this;
 
     // 4. UI / HUD

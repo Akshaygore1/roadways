@@ -34,6 +34,14 @@ export interface GameConfig {
     lookAheadDist: number;
     fovBase: number;
     fovMax: number;
+    orbitTargetHeight: number;
+    orbitMinDistance: number;
+    orbitMaxDistance: number;
+    orbitMinVerticalAngle: number;
+    orbitMaxVerticalAngle: number;
+    orbitDragThreshold: number;
+    orbitDragSensitivity: number;
+    orbitWheelSensitivity: number;
   };
 }
 
@@ -98,6 +106,14 @@ export const CONFIG: GameConfig = {
     chaseDamping: 6.5,
     lookAheadDist: 14.0,     // Look ahead along the road
     fovBase: 64,
-    fovMax: 76
+    fovMax: 76,
+    orbitTargetHeight: 1.8,
+    orbitMinDistance: 3.5,
+    orbitMaxDistance: 45.0,
+    orbitMinVerticalAngle: 0.25,
+    orbitMaxVerticalAngle: 1.45,
+    orbitDragThreshold: 2,
+    orbitDragSensitivity: 0.005,
+    orbitWheelSensitivity: 0.0015
   }
 };

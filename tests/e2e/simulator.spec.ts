@@ -26,13 +26,68 @@ test('loads the simulator canvas and initial HUD', async ({ page }) => {
   expect(pageErrors).toEqual([]);
 });
 
-test('cycles camera and lighting presets with buttons and keyboard', async ({ page }) => {
+test('cycles camera and lighting presets with buttons and keyboard', async ({ page }, testInfo) => {
   const cameraBtn = page.locator('#btn-camera');
   const themeBtn = page.locator('#btn-theme');
 
-  await expect(cameraBtn.locator('[data-lucide="camera"]')).toBeVisible();
-  await cameraBtn.click();
-  await expect(cameraBtn.locator('[data-lucide="eye"]')).toBeVisible();
+  if (testInfo.project.name === 'chromium-desktop') {
+    const canvas = page.locator('#canvas-container canvas');
+    const bounds = await canvas.boundingBox();
+    expect(bounds).not.toBeNull();
+    const viewClip = {
+      x: bounds!.x + bounds!.width * 0.5 - 100,
+      y: bounds!.y + bounds!.height * 0.5 - 100,
+      width: 200,
+      height: 200
+    };
+    const captureView = () => page.screenshot({ clip: viewClip });
+    const waitForFrames = () => page.evaluate(() => new Promise<void>((resolve) => {
+      let framesRemaining = 5;
+      const nextFrame = () => {
+        framesRemaining--;
+        if (framesRemaining === 0) {
+          resolve();
+        } else {
+          requestAnimationFrame(nextFrame);
+        }
+      };
+      requestAnimationFrame(nextFrame);
+    }));
+
+    await expect(canvas).toHaveCSS('cursor', 'grab');
+    const automaticView = await captureView();
+
+    const startX = bounds!.x + bounds!.width * 0.5;
+    const startY = bounds!.y + bounds!.height * 0.5;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down({ button: 'left' });
+    await expect(canvas).toHaveCSS('cursor', 'grabbing');
+    await page.mouse.move(startX + 120, startY - 50, { steps: 6 });
+    await page.mouse.up({ button: 'left' });
+    await expect(canvas).toHaveCSS('cursor', 'grab');
+
+    const orbitView = await captureView();
+    expect(orbitView.equals(automaticView)).toBe(false);
+
+    await waitForFrames();
+    const persistedView = await captureView();
+    expect(persistedView.equals(orbitView)).toBe(true);
+
+    await page.mouse.move(startX, startY);
+    await page.mouse.wheel(0, 500);
+    const zoomedView = await captureView();
+    expect(zoomedView.equals(persistedView)).toBe(false);
+
+    await cameraBtn.click();
+    await expect(cameraBtn.locator('[data-lucide="eye"]')).toBeVisible();
+    const presetView = await captureView();
+    expect(presetView.equals(zoomedView)).toBe(false);
+  } else {
+    await expect(cameraBtn.locator('[data-lucide="camera"]')).toBeVisible();
+    await cameraBtn.click();
+    await expect(cameraBtn.locator('[data-lucide="eye"]')).toBeVisible();
+  }
+
   await page.keyboard.press('c');
   await expect(cameraBtn.locator('[data-lucide="video"]')).toBeVisible();
 

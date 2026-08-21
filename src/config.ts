@@ -42,7 +42,9 @@ export interface RoadsideBusinessConfig {
   chunkPhase: number;
   sampleFraction: number;
   setback: number;
-  clearanceSamples: number;
+  plotWidth: number;
+  plotDepth: number;
+  gradingTransition: number;
 }
 
 export const CONFIG: GameConfig = {
@@ -61,15 +63,19 @@ export const CONFIG: GameConfig = {
       chunkInterval: 5,      // One full-service dhaba about every 1.1km
       chunkPhase: 0,
       sampleFraction: 0.24,
-      setback: 7.0,          // Distance beyond the outer shoulder to the building center
-      clearanceSamples: 8
+      setback: 9.0,          // Distance beyond the outer shoulder to the plot center
+      plotWidth: 14.0,
+      plotDepth: 12.0,
+      gradingTransition: 3.0
     },
     chai: {
       chunkInterval: 5,
       chunkPhase: 1,
       sampleFraction: 0.42,
-      setback: 5.2,
-      clearanceSamples: 6
+      setback: 7.0,
+      plotWidth: 10.0,
+      plotDepth: 8.0,
+      gradingTransition: 3.0
     },
     curveSideThreshold: 0.003
   },

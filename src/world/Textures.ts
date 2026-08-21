@@ -410,7 +410,7 @@ export class TextureGenerator {
     ctx.fillStyle = isDhaba ? '#7b261b' : '#fff0b3';
     ctx.font = '700 40px "Noto Sans Devanagari", Arial, sans-serif';
     ctx.fillText(
-      isDhaba ? 'गरमा गरम खाना  •  शुद्ध शाकाहारी' : 'CUTTING CHAI  •  ₹10',
+      isDhaba ? 'हाईवे ढाबा' : 'CUTTING CHAI  •  ₹10',
       canvas.width * 0.5,
       195
     );

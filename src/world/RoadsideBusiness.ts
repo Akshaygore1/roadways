@@ -1,7 +1,16 @@
 import * as THREE from 'three';
+import { CONFIG } from '../config';
 import { TextureGenerator } from './Textures';
+import { RoadsideBusinessType } from './RoadsidePlot';
 
-export type RoadsideBusinessType = 'dhaba' | 'chai';
+interface RoofBillboardLayout {
+  width: number;
+  height: number;
+  centerY: number;
+  centerZ: number;
+  postOffset: number;
+  roofY: number;
+}
 
 /**
  * Builds low-poly roadside businesses from reusable Three.js primitives.
@@ -20,7 +29,8 @@ export class RoadsideBusiness {
     const trimMat = new THREE.MeshStandardMaterial({ color: 0x24563d, roughness: 0.82 });
     const roofMat = new THREE.MeshStandardMaterial({ color: 0x3f6667, roughness: 0.72, metalness: 0.18 });
     const darkInteriorMat = new THREE.MeshStandardMaterial({ color: 0x1c1611, roughness: 1 });
-    const concreteMat = new THREE.MeshStandardMaterial({ color: 0x8d7055, roughness: 1 });
+    const earthMat = new THREE.MeshStandardMaterial({ color: 0x914628, roughness: 1 });
+    const concreteMat = new THREE.MeshStandardMaterial({ color: 0x9a8874, roughness: 1 });
     const woodMat = new THREE.MeshStandardMaterial({ color: 0x5e321d, roughness: 0.9 });
     const ropeMat = new THREE.MeshStandardMaterial({ color: 0xe0a43b, roughness: 0.92 });
     const metalMat = new THREE.MeshStandardMaterial({ color: 0x9ca2a0, roughness: 0.35, metalness: 0.75 });
@@ -30,11 +40,18 @@ export class RoadsideBusiness {
       map: signTexture,
       emissive: 0xffffff,
       emissiveMap: signTexture,
-      emissiveIntensity: 0.08,
+      emissiveIntensity: 0.16,
       roughness: 0.6
     });
 
-    this.addBox(group, [12.4, 0.22, 10.8], [0, 0.03, -0.2], concreteMat, false);
+    this.addPreparedPlot(
+      group,
+      CONFIG.roadside.dhaba.plotWidth,
+      CONFIG.roadside.dhaba.plotDepth,
+      earthMat,
+      concreteMat
+    );
+    this.addBox(group, [10.8, 0.12, 6.8], [0, 0.07, -1.45], concreteMat, false);
 
     // Enclosed kitchen with a wide, dark service opening toward the road.
     this.addBox(group, [9.6, 3.9, 0.3], [0, 2.05, -4.0], plasterMat, true);
@@ -42,9 +59,16 @@ export class RoadsideBusiness {
     this.addBox(group, [1.55, 3.9, 4.9], [4.03, 2.05, -1.7], plasterMat, true);
     this.addBox(group, [6.6, 0.85, 4.9], [0, 3.58, -1.7], plasterMat, true);
     this.addBox(group, [6.55, 2.75, 0.12], [0, 1.88, 0.8], darkInteriorMat, false);
-    this.addBox(group, [7.3, 1.05, 1.05], [0, 0.72, 1.32], trimMat);
+    this.addBox(group, [7.3, 1.05, 1.05], [0, 0.655, 1.32], trimMat);
     this.addBox(group, [10.4, 0.24, 5.7], [0, 4.12, -1.65], roofMat, true);
-    this.addBox(group, [7.9, 1.02, 0.12], [0, 3.25, 0.87], signMat, false);
+    this.addRoofBillboard(group, {
+      width: 8.4,
+      height: 1.35,
+      centerY: 6.15,
+      centerZ: 0.1,
+      postOffset: 3.15,
+      roofY: 4.24
+    }, signMat, metalMat);
 
     // Striped veranda roof, posts, and a line of warm bulbs.
     const awningColors = [0xb92e24, 0xf1b63b];
@@ -79,16 +103,16 @@ export class RoadsideBusiness {
 
     // Outdoor charpoys make the dhaba readable before its sign is legible.
     const leftCharpoy = this.createCharpoy(woodMat, ropeMat);
-    leftCharpoy.position.set(-2.8, 0.14, 3.45);
+    leftCharpoy.position.set(-2.8, 0.02, 3.45);
     group.add(leftCharpoy);
 
     const rightCharpoy = this.createCharpoy(woodMat, ropeMat);
-    rightCharpoy.position.set(2.75, 0.14, 3.45);
+    rightCharpoy.position.set(2.75, 0.02, 3.45);
     group.add(rightCharpoy);
 
     // Tandoor and steel serving pots at the open counter.
     const tandoor = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.52, 1.05, 12), clayMat);
-    tandoor.position.set(3.65, 0.65, 1.95);
+    tandoor.position.set(3.65, 0.535, 1.95);
     tandoor.castShadow = false;
     group.add(tandoor);
 
@@ -130,7 +154,8 @@ export class RoadsideBusiness {
     const darkInteriorMat = new THREE.MeshStandardMaterial({ color: 0x181511, roughness: 1 });
     const counterMat = new THREE.MeshStandardMaterial({ color: 0x6f3e23, roughness: 0.9 });
     const metalMat = new THREE.MeshStandardMaterial({ color: 0xa9aeaa, roughness: 0.3, metalness: 0.8 });
-    const concreteMat = new THREE.MeshStandardMaterial({ color: 0x8b725a, roughness: 1 });
+    const earthMat = new THREE.MeshStandardMaterial({ color: 0x914628, roughness: 1 });
+    const concreteMat = new THREE.MeshStandardMaterial({ color: 0x9a8874, roughness: 1 });
     const tarpMat = new THREE.MeshStandardMaterial({
       color: 0xf0b42e,
       roughness: 0.82,
@@ -141,21 +166,35 @@ export class RoadsideBusiness {
       map: signTexture,
       emissive: 0xffffff,
       emissiveMap: signTexture,
-      emissiveIntensity: 0.12,
+      emissiveIntensity: 0.18,
       roughness: 0.58
     });
 
-    this.addBox(group, [8.0, 0.2, 7.4], [0, 0.02, 0], concreteMat, false);
+    this.addPreparedPlot(
+      group,
+      CONFIG.roadside.chai.plotWidth,
+      CONFIG.roadside.chai.plotDepth,
+      earthMat,
+      concreteMat
+    );
+    this.addBox(group, [6.3, 0.12, 5.0], [0, 0.07, -0.58], concreteMat, false);
     this.addBox(group, [5.8, 3.75, 3.8], [0, 1.98, -0.9], kioskMat, true);
     this.addBox(group, [4.35, 2.35, 0.12], [0, 2.0, 1.04], darkInteriorMat, false);
-    this.addBox(group, [5.0, 0.92, 0.82], [0, 0.72, 1.48], counterMat);
+    this.addBox(group, [5.0, 0.92, 0.82], [0, 0.59, 1.48], counterMat);
     this.addBox(group, [6.45, 0.2, 4.45], [0, 3.98, -0.82], metalMat, true);
-    this.addBox(group, [4.9, 0.92, 0.1], [0, 3.25, 1.09], signMat, false);
+    this.addRoofBillboard(group, {
+      width: 5.6,
+      height: 1.25,
+      centerY: 5.4,
+      centerZ: 0,
+      postOffset: 2.05,
+      roofY: 4.08
+    }, signMat, metalMat);
 
     const awning = this.addBox(group, [6.5, 0.12, 2.9], [0, 3.55, 2.4], tarpMat, true);
     awning.rotation.x = 0.1;
-    this.addBox(group, [0.1, 3.3, 0.1], [-2.85, 1.68, 3.72], metalMat);
-    this.addBox(group, [0.1, 3.3, 0.1], [2.85, 1.68, 3.72], metalMat);
+    this.addBox(group, [0.1, 3.3, 0.1], [-2.85, 1.66, 3.72], metalMat);
+    this.addBox(group, [0.1, 3.3, 0.1], [2.85, 1.66, 3.72], metalMat);
 
     // Familiar roadside bench, kettle, glasses, and biscuit jars.
     this.addBox(group, [4.7, 0.22, 0.65], [0, 0.82, 3.46], counterMat);
@@ -244,6 +283,68 @@ export class RoadsideBusiness {
     group.add(handle);
 
     return group;
+  }
+
+  private static addPreparedPlot(
+    group: THREE.Group,
+    width: number,
+    depth: number,
+    earthMat: THREE.Material,
+    concreteMat: THREE.Material
+  ): void {
+    const apronHeight = 0.05;
+    const surfaceY = 0.01;
+    const curbWidth = 0.22;
+    const curbHeight = 0.22;
+    this.addBox(
+      group,
+      [width, apronHeight, depth],
+      [0, surfaceY - apronHeight * 0.5, 0],
+      earthMat,
+      false
+    );
+
+    const curbY = surfaceY + curbHeight * 0.5;
+    const sideX = width * 0.5 - curbWidth * 0.5;
+    this.addBox(group, [curbWidth, curbHeight, depth], [-sideX, curbY, 0], concreteMat, false);
+    this.addBox(group, [curbWidth, curbHeight, depth], [sideX, curbY, 0], concreteMat, false);
+    this.addBox(
+      group,
+      [width - curbWidth * 2, curbHeight, curbWidth],
+      [0, curbY, -depth * 0.5 + curbWidth * 0.5],
+      concreteMat,
+      false
+    );
+  }
+
+  private static addRoofBillboard(
+    group: THREE.Group,
+    layout: RoofBillboardLayout,
+    signMat: THREE.Material,
+    metalMat: THREE.Material
+  ): void {
+    const { width, height, centerY, centerZ, postOffset, roofY } = layout;
+    const frameDepth = 0.09;
+    const frameMat = new THREE.MeshStandardMaterial({
+      color: 0x333b3d,
+      roughness: 0.42,
+      metalness: 0.78
+    });
+    this.addBox(
+      group,
+      [width + 0.22, height + 0.22, frameDepth],
+      [0, centerY, centerZ],
+      frameMat,
+      false
+    );
+    this.addBox(group, [width, height, 0.055], [0, centerY, centerZ + 0.07], signMat, false);
+
+    const boardBottom = centerY - height * 0.5;
+    const postHeight = boardBottom - roofY;
+    const postY = roofY + postHeight * 0.5;
+    for (const x of [-postOffset, postOffset]) {
+      this.addBox(group, [0.1, postHeight, 0.1], [x, postY, centerZ], metalMat, false);
+    }
   }
 
   private static addBox(

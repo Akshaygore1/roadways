@@ -2,7 +2,14 @@ import * as THREE from 'three';
 import { CONFIG } from '../config';
 import { TextureGenerator } from './Textures';
 import { TerrainUtils } from './TerrainUtils';
-import { RoadsideBusiness, RoadsideBusinessType } from './RoadsideBusiness';
+import { RoadsideBusiness } from './RoadsideBusiness';
+import {
+  applyRoadsidePlotHeight,
+  getDistanceFromPlotCore,
+  RoadSide,
+  RoadsideBusinessSite,
+  RoadsideBusinessType
+} from './RoadsidePlot';
 
 export interface RoadSample {
   point: THREE.Vector3;
@@ -14,14 +21,6 @@ export interface RoadSample {
   curvature: number;   // Curvature kappa
 }
 
-interface RoadsideBusinessSite {
-  type: RoadsideBusinessType;
-  sampleIndex: number;
-  side: RoadSide;
-}
-
-type RoadSide = -1 | 1;
-
 export class SplineChunk {
   public chunkIndex: number;
   public group: THREE.Group;
@@ -32,6 +31,7 @@ export class SplineChunk {
   public endPoint: THREE.Vector3;
   public startTangent: THREE.Vector3;
   public endTangent: THREE.Vector3;
+  public roadsideBusinessSite: RoadsideBusinessSite | null = null;
 
   private roadMesh!: THREE.Mesh;
   private leftShoulderMesh!: THREE.Mesh;
@@ -61,6 +61,7 @@ export class SplineChunk {
     this.endPoint = this.samples[this.samples.length - 1].point.clone();
     this.startTangent = this.samples[0].tangent.clone();
     this.endTangent = this.samples[this.samples.length - 1].tangent.clone();
+    this.roadsideBusinessSite = this.selectRoadsideBusinessSite(noise2D);
 
     // 3. Build engineered geometries
     this.buildRoadMesh(roadMaterial);
@@ -351,13 +352,17 @@ export class SplineChunk {
   }
 
   /**
-   * Builds high-resolution 24-column landscape mesh with 4-octave FBM noise,
+   * Builds a high-resolution landscape mesh with 4-octave FBM noise,
    * engineered cut-and-fill slopes, and multi-biome vertex colors.
    */
   private buildTerrainMesh(noise2D: (x: number, y: number) => number, terrainMat: THREE.Material): void {
-    const steps = this.samples.length;
+    const terrainSamples = this.getTerrainSamples();
+    const steps = terrainSamples.length;
     const terrainWidth = 320; // 320m expansive terrain on both sides
-    const terrainCols = 20;   // 20 non-linear columns per side
+    const site = this.roadsideBusinessSite;
+    // Plot boundary columns replace generic columns so business chunks retain
+    // approximately the same vertex budget as ordinary terrain chunks.
+    const terrainCols = site ? 17 : 20;
 
     const geo = new THREE.BufferGeometry();
     const positions: number[] = [];
@@ -368,38 +373,63 @@ export class SplineChunk {
 
     const halfRoad = CONFIG.road.width * 0.5 + CONFIG.road.shoulderWidth;
 
-    // Precalculate non-linear column lateral distances (dense near road, wider far out)
-    const leftDistances: number[] = [];
-    const rightDistances: number[] = [];
+    // Precalculate non-linear column lateral distances (dense near road, wider far out).
+    // Site boundary columns prevent interpolation from cutting beneath a flat plot edge.
+    const basePositiveDistances: number[] = [];
 
     for (let c = 0; c <= terrainCols; c++) {
       const u = c / terrainCols;
       // Non-linear power distribution u^1.7 gives dense roadside berms and expansive distant hills
       const dist = halfRoad + Math.pow(u, 1.7) * (terrainWidth - halfRoad);
-      rightDistances.push(dist);
-      leftDistances.push(-dist);
+      basePositiveDistances.push(dist);
     }
-    // Reverse left distances so index 0 is farthest left (-terrainWidth) and last is closest to road (-halfRoad)
-    leftDistances.reverse();
+
+    const leftPositiveDistances = [...basePositiveDistances];
+    const rightPositiveDistances = [...basePositiveDistances];
+    if (site) {
+      const centerDistance = halfRoad + CONFIG.roadside[site.type].setback;
+      const halfPlotDepth = site.plotDepth * 0.5;
+      const siteDistances = site.side === 1 ? rightPositiveDistances : leftPositiveDistances;
+      siteDistances.push(
+        centerDistance - halfPlotDepth,
+        centerDistance,
+        centerDistance + halfPlotDepth,
+        centerDistance + halfPlotDepth + site.gradingTransition
+      );
+    }
+
+    const sortUniqueDistances = (distances: number[]): number[] => {
+      distances.sort((a, b) => a - b);
+      return distances.filter(
+        (distance, index) => index === 0 || Math.abs(distance - distances[index - 1]) > 0.01
+      );
+    };
+    const rightDistances = sortUniqueDistances(rightPositiveDistances);
+    const leftDistances = sortUniqueDistances(leftPositiveDistances)
+      .map((distance) => -distance)
+      .reverse();
+    const leftColumnCount = leftDistances.length;
+    const rightColumnCount = rightDistances.length;
+    const totalColumnCount = leftColumnCount + rightColumnCount;
 
     for (let i = 0; i < steps; i++) {
-      const s = this.samples[i];
+      const s = terrainSamples[i];
       const p = s.point;
       const b = s.binormal;
       const n = s.normal;
 
       // 1. Left Terrain Strip (from -terrainWidth inwards to -halfRoad)
-      for (let c = 0; c <= terrainCols; c++) {
+      for (let c = 0; c < leftColumnCount; c++) {
         const dist = leftDistances[c];
         const pt = p.clone().addScaledVector(b, dist);
         
         // At innermost column bordering shoulder, match shoulder outer edge normal offset
-        if (c === terrainCols) {
+        if (c === leftColumnCount - 1) {
           pt.addScaledVector(n, -0.14);
         }
 
         // Calculate ground elevation using cut-and-fill FBM model with 3D banking
-        pt.y = TerrainUtils.getEngineeredHeight(pt.x, pt.z, p, dist, noise2D, b, n);
+        pt.y = this.getPreparedTerrainHeight(pt, s, dist, noise2D);
 
         positions.push(pt.x, pt.y, pt.z);
         normals.push(0, 1, 0); // Will be recalculated by computeVertexNormals
@@ -412,7 +442,7 @@ export class SplineChunk {
       }
 
       // 2. Right Terrain Strip (from +halfRoad outwards to +terrainWidth)
-      for (let c = 0; c <= terrainCols; c++) {
+      for (let c = 0; c < rightColumnCount; c++) {
         const dist = rightDistances[c];
         const pt = p.clone().addScaledVector(b, dist);
 
@@ -421,7 +451,7 @@ export class SplineChunk {
           pt.addScaledVector(n, -0.14);
         }
 
-        pt.y = TerrainUtils.getEngineeredHeight(pt.x, pt.z, p, dist, noise2D, b, n);
+        pt.y = this.getPreparedTerrainHeight(pt, s, dist, noise2D);
 
         positions.push(pt.x, pt.y, pt.z);
         normals.push(0, 1, 0);
@@ -433,12 +463,11 @@ export class SplineChunk {
       }
 
       if (i < steps - 1) {
-        const totalCols = (terrainCols + 1) * 2;
-        const row = i * totalCols;
-        const nextRow = (i + 1) * totalCols;
+        const row = i * totalColumnCount;
+        const nextRow = (i + 1) * totalColumnCount;
 
         // Left strip quads
-        for (let c = 0; c < terrainCols; c++) {
+        for (let c = 0; c < leftColumnCount - 1; c++) {
           const a = row + c;
           const d = row + c + 1;
           const c_idx = nextRow + c + 1;
@@ -447,8 +476,8 @@ export class SplineChunk {
         }
 
         // Right strip quads
-        const offset = terrainCols + 1;
-        for (let c = 0; c < terrainCols; c++) {
+        const offset = leftColumnCount;
+        for (let c = 0; c < rightColumnCount - 1; c++) {
           const a = row + offset + c;
           const d = row + offset + c + 1;
           const c_idx = nextRow + offset + c + 1;
@@ -475,7 +504,7 @@ export class SplineChunk {
       const ny = normAttr.getY(idx);
 
       // Find approximate distance to road center
-      const s = this.samples[Math.min(steps - 1, Math.floor((idx / ((terrainCols + 1) * 2))))];
+      const s = terrainSamples[Math.min(steps - 1, Math.floor(idx / totalColumnCount))];
       const dist = s.point.distanceTo(new THREE.Vector3(px, py, pz));
       const noiseVal = noise2D(px * 0.015, pz * 0.015);
 
@@ -486,6 +515,91 @@ export class SplineChunk {
     this.terrainMesh = new THREE.Mesh(geo, terrainMat);
     this.terrainMesh.receiveShadow = true;
     this.group.add(this.terrainMesh);
+  }
+
+  private getTerrainSamples(): RoadSample[] {
+    const site = this.roadsideBusinessSite;
+    if (!site) return this.samples;
+
+    const samplesWithProgress = this.samples.map((sample, index) => ({
+      progress: index,
+      sample
+    }));
+    const halfPlotWidth = site.plotWidth * 0.5;
+    const boundaryOffsets = [
+      -halfPlotWidth - site.gradingTransition,
+      -halfPlotWidth,
+      halfPlotWidth,
+      halfPlotWidth + site.gradingTransition
+    ];
+
+    for (const boundaryOffset of boundaryOffsets) {
+      for (let index = 0; index < this.samples.length - 1; index++) {
+        const start = this.samples[index];
+        const end = this.samples[index + 1];
+        const startOffset = start.point.clone().sub(site.center).dot(site.localX);
+        const endOffset = end.point.clone().sub(site.center).dot(site.localX);
+        if ((boundaryOffset - startOffset) * (boundaryOffset - endOffset) > 0) continue;
+
+        const offsetSpan = endOffset - startOffset;
+        if (Math.abs(offsetSpan) < 0.0001) break;
+        const ratio = THREE.MathUtils.clamp(
+          (boundaryOffset - startOffset) / offsetSpan,
+          0,
+          1
+        );
+        if (ratio > 0.001 && ratio < 0.999) {
+          samplesWithProgress.push({
+            progress: index + ratio,
+            sample: this.interpolateRoadSample(start, end, ratio)
+          });
+        }
+        break;
+      }
+    }
+
+    samplesWithProgress.sort((a, b) => a.progress - b.progress);
+    return samplesWithProgress
+      .filter((entry, index) => (
+        index === 0 || Math.abs(entry.progress - samplesWithProgress[index - 1].progress) > 0.0001
+      ))
+      .map((entry) => entry.sample);
+  }
+
+  private interpolateRoadSample(start: RoadSample, end: RoadSample, ratio: number): RoadSample {
+    const point = start.point.clone().lerp(end.point, ratio);
+    return {
+      point,
+      tangent: start.tangent.clone().lerp(end.tangent, ratio).normalize(),
+      binormal: start.binormal.clone().lerp(end.binormal, ratio).normalize(),
+      normal: start.normal.clone().lerp(end.normal, ratio).normalize(),
+      elevation: point.y,
+      banking: THREE.MathUtils.lerp(start.banking, end.banking, ratio),
+      curvature: THREE.MathUtils.lerp(start.curvature, end.curvature, ratio)
+    };
+  }
+
+  private getPreparedTerrainHeight(
+    point: THREE.Vector3,
+    roadSample: RoadSample,
+    distanceFromCenter: number,
+    noise2D: (x: number, y: number) => number
+  ): number {
+    const naturalHeight = TerrainUtils.getEngineeredHeight(
+      point.x,
+      point.z,
+      roadSample.point,
+      distanceFromCenter,
+      noise2D,
+      roadSample.binormal,
+      roadSample.normal
+    );
+    return applyRoadsidePlotHeight(
+      naturalHeight,
+      point.x,
+      point.z,
+      this.roadsideBusinessSite
+    );
   }
 
   /**
@@ -526,16 +640,16 @@ export class SplineChunk {
     this.buildGuardrails();
 
     // 4. Roadside dhabas and chai stalls on quieter, guardrail-free verges
-    const businessSite = this.buildRoadsideBusiness(noise2D);
+    const businessSite = this.roadsideBusinessSite;
+    this.buildRoadsideBusiness(businessSite);
 
     // 5. Diverse Indian Roadside Trees (Gulmohar, Banyan, Neem, Palm)
     for (let i = 3; i < this.samples.length - 3; i += 4) {
       const s = this.samples[i];
       const side = (i % 8 === 0) ? -1 : 1;
-      if (this.isInsideBusinessClearance(businessSite, i, side)) continue;
-
       const lateralDist = halfRoad + 4.5 + (i % 5) * 4.2;
       const treePos = s.point.clone().addScaledVector(s.binormal, side * lateralDist);
+      if (this.isInsideBusinessClearance(businessSite, treePos.x, treePos.z, 2.5)) continue;
 
       // Height on terrain
       treePos.y = TerrainUtils.getEngineeredHeight(treePos.x, treePos.z, s.point, side * lateralDist, noise2D, s.binormal, s.normal);
@@ -553,10 +667,9 @@ export class SplineChunk {
     for (let i = 2; i < this.samples.length - 2; i += 3) {
       const s = this.samples[i];
       const side = (i % 2 === 0) ? -1 : 1;
-      if (this.isInsideBusinessClearance(businessSite, i, side)) continue;
-
       const dist = halfRoad + 1.6 + ((i * 3) % 4) * 2.2;
       const propPos = s.point.clone().addScaledVector(s.binormal, side * dist);
+      if (this.isInsideBusinessClearance(businessSite, propPos.x, propPos.z, 1.5)) continue;
       propPos.y = TerrainUtils.getEngineeredHeight(propPos.x, propPos.z, s.point, side * dist, noise2D, s.binormal, s.normal);
 
       if (i % 3 === 0) {
@@ -575,7 +688,7 @@ export class SplineChunk {
     }
   }
 
-  private buildRoadsideBusiness(
+  private selectRoadsideBusinessSite(
     noise2D: (x: number, y: number) => number
   ): RoadsideBusinessSite | null {
     const businessTypes: RoadsideBusinessType[] = ['dhaba', 'chai'];
@@ -618,21 +731,37 @@ export class SplineChunk {
     const localY = new THREE.Vector3().crossVectors(towardRoad, localX).normalize();
     const orientation = new THREE.Matrix4().makeBasis(localX, localY, towardRoad);
 
-    const business = RoadsideBusiness.create(type, this.chunkIndex);
-    business.position.copy(businessPosition);
-    business.quaternion.setFromRotationMatrix(orientation);
-    this.propsGroup.add(business);
+    return {
+      type,
+      side,
+      center: businessPosition,
+      orientation: new THREE.Quaternion().setFromRotationMatrix(orientation),
+      localX,
+      roadDirection: towardRoad,
+      plateauElevation: businessPosition.y,
+      plotWidth: businessConfig.plotWidth,
+      plotDepth: businessConfig.plotDepth,
+      gradingTransition: businessConfig.gradingTransition
+    };
+  }
 
-    return { type, sampleIndex, side };
+  private buildRoadsideBusiness(site: RoadsideBusinessSite | null): void {
+    if (!site) return;
+
+    const business = RoadsideBusiness.create(site.type, this.chunkIndex);
+    business.position.copy(site.center);
+    business.quaternion.copy(site.orientation);
+    this.propsGroup.add(business);
   }
 
   private isInsideBusinessClearance(
     site: RoadsideBusinessSite | null,
-    sampleIndex: number,
-    side: RoadSide
+    worldX: number,
+    worldZ: number,
+    margin: number
   ): boolean {
-    if (!site || side !== site.side) return false;
-    return Math.abs(sampleIndex - site.sampleIndex) <= CONFIG.roadside[site.type].clearanceSamples;
+    if (!site) return false;
+    return getDistanceFromPlotCore(site, worldX, worldZ) <= site.gradingTransition + margin;
   }
 
   /**

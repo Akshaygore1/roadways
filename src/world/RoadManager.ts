@@ -4,6 +4,7 @@ import { CONFIG } from '../config';
 import { SplineChunk, RoadSample } from './SplineChunk';
 import { TextureGenerator } from './Textures';
 import { TerrainUtils } from './TerrainUtils';
+import { applyRoadsidePlotHeight, getDistanceFromPlotCore } from './RoadsidePlot';
 
 export interface ClosestRoadInfo {
   point: THREE.Vector3;
@@ -288,7 +289,7 @@ export class RoadManager {
   public getGroundHeight(x: number, z: number): number {
     const probe = new THREE.Vector3(x, 0, z);
     const roadInfo = this.getClosestRoadSample(probe);
-    return TerrainUtils.getEngineeredHeight(
+    const naturalHeight = TerrainUtils.getEngineeredHeight(
       x,
       z,
       roadInfo.point,
@@ -297,5 +298,17 @@ export class RoadManager {
       roadInfo.binormal,
       roadInfo.normal
     );
+
+    const roadEdge = CONFIG.road.width * 0.5 + CONFIG.road.shoulderWidth;
+    if (Math.abs(roadInfo.distanceToCenter) <= roadEdge) return naturalHeight;
+
+    for (const chunk of this.chunks) {
+      const site = chunk.roadsideBusinessSite;
+      if (!site) continue;
+      if (getDistanceFromPlotCore(site, x, z) > site.gradingTransition) continue;
+      return applyRoadsidePlotHeight(naturalHeight, x, z, site);
+    }
+
+    return naturalHeight;
   }
 }

@@ -34,6 +34,15 @@ export interface GameConfig {
   autopilot: {
     cruiseSpeedKmh: number;
   };
+  audio: {
+    masterVolume: number;
+    engineVolume: number;
+    idleRpm: number;
+    maxRpm: number;
+    shiftSpeeds: number[];
+    turboMaxVolume: number;
+    airBrakeVolume: number;
+  };
   camera: {
     chaseDistance: number;
     chaseHeight: number;
@@ -149,6 +158,15 @@ export const CONFIG: GameConfig = {
   },
   autopilot: {
     cruiseSpeedKmh: 100
+  },
+  audio: {
+    masterVolume: 0.7,
+    engineVolume: 0.45,
+    idleRpm: 650,
+    maxRpm: 2400,
+    shiftSpeeds: [0, 20, 42, 68, 92],
+    turboMaxVolume: 0.15,
+    airBrakeVolume: 0.22
   },
   camera: {
     chaseDistance: 6.9,      // Closer to the truck tailgate

@@ -63,9 +63,11 @@ class Game {
       this.environment,
       () => {
         this.car.reset();
+        this.audio.resetEngine();
         this.hud.updateAutopilotText(false);
       },
       () => {
+        this.audio.startEngine();
         const enabled = this.car.toggleAutopilot();
         this.hud.updateAutopilotText(enabled);
       },
@@ -88,6 +90,7 @@ class Game {
 
     this.input.onReset = () => {
       this.car.reset();
+      this.audio.resetEngine();
       this.hud.updateAutopilotText(false);
     };
 
@@ -102,14 +105,26 @@ class Game {
     };
 
     this.input.onAutopilotToggle = () => {
+      this.audio.startEngine();
       const enabled = this.car.toggleAutopilot();
       this.hud.updateAutopilotText(enabled);
     };
 
-    // 6. Window Resize
+    // 6. User interaction audio starter (Web Audio autoplay policy)
+    const startAudioOnInteraction = () => {
+      this.audio.startEngine();
+      window.removeEventListener('keydown', startAudioOnInteraction);
+      window.removeEventListener('pointerdown', startAudioOnInteraction);
+      window.removeEventListener('touchstart', startAudioOnInteraction);
+    };
+    window.addEventListener('keydown', startAudioOnInteraction, { passive: true });
+    window.addEventListener('pointerdown', startAudioOnInteraction, { passive: true });
+    window.addEventListener('touchstart', startAudioOnInteraction, { passive: true });
+
+    // 7. Window Resize
     window.addEventListener('resize', this.onResize.bind(this));
 
-    // 7. Start Loop
+    // 8. Start Loop
     this.animate();
   }
 
@@ -131,6 +146,7 @@ class Game {
     // Update Systems
     this.input.update(delta);
     this.car.update(delta);
+    this.audio.update(this.car.speedKmh, this.car.effectiveThrottle, this.car.isBraking, delta);
     this.roadManager.update(this.car.position);
     this.environment.update(this.car.position);
     this.followCamera.update(delta);

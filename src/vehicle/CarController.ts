@@ -16,6 +16,8 @@ export class CarController {
   public roll: number = 0;
   public distanceTraveledKm: number = 0;
   public headlightsEnabled: boolean = true;
+  public effectiveThrottle: number = 0;
+  public isBraking: boolean = false;
 
   private steerAngle: number = 0;
   private roadManager: RoadManager;
@@ -50,6 +52,8 @@ export class CarController {
     this.verticalVelocity = 0;
     this.autopilotEnabled = false;
     this.distanceTraveledKm = 0;
+    this.effectiveThrottle = 0;
+    this.isBraking = false;
     this.updateTransform();
   }
 
@@ -82,6 +86,8 @@ export class CarController {
       effectiveHandbrake = false;
     }
 
+    this.effectiveThrottle = effectiveThrottle;
+
     // 1. Steering computation
     const targetSteer = effectiveSteering * CONFIG.physics.maxSteerAngle;
     this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1, dt * CONFIG.physics.steerSpeed);
@@ -94,6 +100,7 @@ export class CarController {
     let forwardSpeed = this.velocity.dot(this.forward);
 
     const isBraking = (forwardSpeed > 0.5 && effectiveThrottle < -0.1) || effectiveHandbrake;
+    this.isBraking = isBraking;
     this.model.setBraking(isBraking);
 
     if (effectiveThrottle > 0.05) {

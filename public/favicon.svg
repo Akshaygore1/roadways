@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Desi Truck">
+  <rect width="64" height="64" rx="12" fill="#12161a"/>
+  <path d="M19 10h26l5 10v25H14V20l5-10Z" fill="#f3a72d"/>
+  <path d="M21 14h22l3 8H18l3-8Z" fill="#27333a"/>
+  <path d="M32 14v8" stroke="#ffc85c" stroke-width="2"/>
+  <path d="M18 28h28v12H18z" fill="#dc7d20"/>
+  <circle cx="22" cy="33" r="4" fill="#fff3d3"/>
+  <circle cx="42" cy="33" r="4" fill="#fff3d3"/>
+  <circle cx="22" cy="33" r="2" fill="#ffc15a"/>
+  <circle cx="42" cy="33" r="2" fill="#ffc15a"/>
+  <path d="M14 40h36v8H14z" fill="#e5aa28"/>
+  <path d="M14 40h6l6 8h-6l-6-8Zm12 0h6l6 8h-6l-6-8Zm12 0h6l6 8h-6l-6-8Z" fill="#171c20"/>
+  <path d="M20 48v3m24-3v3" stroke="#07090a" stroke-width="5" stroke-linecap="round"/>
+  <path d="m24 64 6-13h4l6 13Z" fill="#2a3034"/>
+  <path d="M32 53v5" stroke="#ffd66b" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

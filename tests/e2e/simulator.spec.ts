@@ -8,6 +8,25 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
+test('publishes complete Desi Roads metadata and branding', async ({ page }) => {
+  const title = 'Desi Roads — Indian Highway Truck Simulator';
+  const description = 'Drive a decorated Indian truck across winding NH 44 in a cinematic low-poly highway simulator.';
+
+  await expect(page).toHaveTitle(title);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', description);
+  await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute('content', 'Desi Roads');
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', title);
+  await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', description);
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', '/desi-roads-og.png');
+  await expect(page.locator('meta[property="og:image:type"]')).toHaveAttribute('content', 'image/png');
+  await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute('content', title);
+  await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute('content', description);
+  await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute('content', '/desi-roads-og.png');
+  await expect(page.locator('.brand-title')).toHaveText('DESI ROADS');
+  await expect(page.locator('.music-player-name')).toHaveText('DESI ROADS RADIO');
+  await expect(page.locator('#music-player')).toHaveAttribute('aria-label', /DESI ROADS RADIO/);
+});
+
 test('loads the simulator canvas and initial HUD', async ({ page }) => {
   const pageErrors: Error[] = [];
   page.on('pageerror', (error) => pageErrors.push(error));
@@ -23,6 +42,8 @@ test('loads the simulator canvas and initial HUD', async ({ page }) => {
   await expect(page.locator('#hud-speed')).toHaveText('0');
   await expect(page.locator('#hud-distance')).toHaveText('0.0 KM');
   await expect(page.locator('#hud-nh')).toHaveText('NH 44');
+  await expect(page.locator('#hud-fps')).toBeVisible();
+  await expect(page.locator('#autopilot-indicator')).toBeHidden();
   expect(pageErrors).toEqual([]);
 });
 

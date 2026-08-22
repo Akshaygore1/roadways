@@ -1,7 +1,7 @@
 import { CONFIG } from '../config';
 
 /**
- * Web Audio API Engine Sound & Horn System for Desi Slow Roads
+* Web Audio API engine sound and horn system for Desi Roads.
  * Features:
  * 1. Authentic heavy dump truck diesel engine sound extracted from user video
  * 2. Dynamic 5-gear transmission RPM & playback pitch modulation
@@ -314,5 +314,4 @@ export class AudioManager {
     }
   }
 }
-
 

@@ -1,1143 +1,224 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-        />
-        <title>Desi Truck Simulator - Scenic Indian Highway (NH 44)</title>
-        <meta name="theme-color" content="#12161a" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content="Desi Truck — NH 44 Highway Simulator" />
-        <meta
-            property="og:description"
-            content="Take the wheel of a decorated Indian truck and cruise the winding roads of NH 44."
-        />
-        <meta property="og:image" content="/desi-truck-og.png" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta
-            property="og:image:alt"
-            content="A decorated marigold truck driving through the golden-hour hills of NH 44"
-        />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Desi Truck — NH 44 Highway Simulator" />
-        <meta
-            name="twitter:description"
-            content="Take the wheel of a decorated Indian truck and cruise the winding roads of NH 44."
-        />
-        <meta name="twitter:image" content="/desi-truck-og.png" />
-        <meta
-            name="twitter:image:alt"
-            content="A decorated marigold truck driving through the golden-hour hills of NH 44"
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
-            rel="stylesheet"
-        />
-        <style>
-            :root {
-                --hud-surface: rgba(13, 18, 22, 0.92);
-                --hud-surface-raised: rgba(23, 29, 34, 0.96);
-                --hud-surface-pressed: rgba(8, 12, 15, 0.98);
-                --hud-text: #f7f8f5;
-                --hud-muted: #b8c0c4;
-                --hud-amber: #ffc15a;
-                --hud-amber-strong: #ffad2f;
-                --hud-green: #45c96b;
-                --hud-green-surface: #163b25;
-                --hud-green-border: #3fbf65;
-                --hud-border: rgba(232, 238, 240, 0.22);
-                --hud-border-strong: rgba(247, 248, 245, 0.42);
-                --hud-radius-sm: 6px;
-                --hud-radius: 10px;
-                --hud-transition: 180ms cubic-bezier(0.25, 1, 0.5, 1);
-                --space-1: 4px;
-                --space-2: 8px;
-                --space-3: 12px;
-                --space-4: 16px;
-                --space-5: 20px;
-                --space-6: 24px;
-                --space-8: 32px;
-            }
-
-            * {
-                box-sizing: border-box;
-                user-select: none;
-                margin: 0;
-                padding: 0;
-            }
-            body,
-            html {
-                width: 100%;
-                height: 100%;
-                overflow: hidden;
-                background-color: #12161a;
-                font-family: "Outfit", sans-serif;
-                color: #fff;
-            }
-            #canvas-container {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: 1;
-            }
-            #canvas-container canvas {
-                display: block;
-                width: 100%;
-                height: 100%;
-                cursor: grab;
-            }
-
-            /* Modern truck instrument panel */
-            .hud-overlay {
-                position: absolute;
-                inset: 0;
-                z-index: 10;
-                pointer-events: none;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                padding: var(--space-6) var(--space-8);
-            }
-
-            .top-bar {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-            }
-
-            .game-brand {
-                position: relative;
-                pointer-events: auto;
-                min-width: 190px;
-                padding: 9px 18px 8px;
-                overflow: hidden;
-                background: var(--hud-amber);
-                border: 1px solid #ffdb98;
-                border-radius: 2px;
-                box-shadow:
-                    0 3px 0 rgba(8, 12, 15, 0.88),
-                    0 6px 8px rgba(0, 0, 0, 0.22);
-                color: #17120b;
-            }
-            .game-brand::before,
-            .game-brand::after {
-                content: "";
-                position: absolute;
-                top: 50%;
-                width: 4px;
-                height: 4px;
-                border-radius: 50%;
-                background: rgba(23, 18, 11, 0.52);
-                transform: translateY(-50%);
-            }
-            .game-brand::before {
-                left: 7px;
-            }
-            .game-brand::after {
-                right: 7px;
-            }
-            .brand-title {
-                font-size: 19px;
-                font-weight: 800;
-                line-height: 1;
-                letter-spacing: 1.4px;
-                text-transform: uppercase;
-                color: #17120b;
-            }
-            .brand-sub {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: var(--space-3);
-                margin-top: 5px;
-                font-family: "JetBrains Mono", monospace;
-                font-size: 8px;
-                font-weight: 600;
-                letter-spacing: 0.55px;
-                color: rgba(23, 18, 11, 0.76);
-                text-transform: uppercase;
-            }
-            .brand-route {
-                padding-left: var(--space-2);
-                border-left: 1px solid rgba(23, 18, 11, 0.34);
-                color: #17120b;
-                font-weight: 700;
-            }
-
-            .top-left-hud {
-                display: flex;
-                flex-direction: column;
-                align-items: flex-start;
-                gap: var(--space-2);
-                pointer-events: none;
-            }
-
-            .music-player {
-                --music-tuner-position: 12.5%;
-                position: relative;
-                width: 190px;
-                color: var(--hud-text);
-                pointer-events: auto;
-            }
-            .music-player-toggle {
-                width: 190px;
-                min-height: 34px;
-                padding: 0 10px;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                background: rgba(8, 12, 15, 0.9);
-                border: 1px solid rgba(255, 193, 90, 0.58);
-                border-radius: 2px;
-                color: var(--hud-text);
-                cursor: pointer;
-                font: inherit;
-                transition:
-                    background-color var(--hud-transition),
-                    border-color var(--hud-transition);
-            }
-            .music-player-toggle:hover {
-                background: var(--hud-surface-raised);
-                border-color: var(--hud-amber);
-            }
-            .music-player-toggle:focus-visible,
-            .music-mood:focus-visible,
-            .music-player-fallback:focus-visible {
-                outline: 2px solid var(--hud-amber);
-                outline-offset: 2px;
-            }
-            .music-live-dot {
-                width: 6px;
-                height: 6px;
-                flex: 0 0 auto;
-                border-radius: 50%;
-                background: var(--hud-amber);
-                box-shadow: 0 0 6px rgba(255, 193, 90, 0.78);
-            }
-            .music-player-name {
-                font-size: 11px;
-                font-weight: 800;
-                letter-spacing: 0.8px;
-            }
-            .music-player-current {
-                min-width: 0;
-                flex: 1;
-                overflow: hidden;
-                color: var(--hud-muted);
-                font-family: "JetBrains Mono", monospace;
-                font-size: 8px;
-                font-weight: 600;
-                text-align: right;
-                text-overflow: ellipsis;
-                text-transform: uppercase;
-                white-space: nowrap;
-            }
-            .music-player-chevron {
-                width: 7px;
-                height: 7px;
-                flex: 0 0 auto;
-                border-right: 1.5px solid currentColor;
-                border-bottom: 1.5px solid currentColor;
-                transform: translateY(-2px) rotate(45deg);
-                transition: transform var(--hud-transition);
-            }
-            .music-player.is-expanded .music-player-chevron {
-                transform: translateY(2px) rotate(225deg);
-            }
-            .music-player-panel {
-                position: absolute;
-                z-index: 2;
-                top: calc(100% + 6px);
-                left: 0;
-                width: 364px;
-                padding: var(--space-3);
-                background: rgba(8, 12, 15, 0.97);
-                border: 1px solid rgba(255, 193, 90, 0.48);
-                border-radius: 2px;
-                box-shadow: 0 6px 8px rgba(0, 0, 0, 0.38);
-                animation: music-panel-in var(--hud-transition) both;
-            }
-            .music-player-panel[hidden] {
-                display: none;
-            }
-            .music-tuner-head {
-                display: flex;
-                align-items: baseline;
-                justify-content: space-between;
-                margin-bottom: 10px;
-                font-family: "JetBrains Mono", monospace;
-            }
-            .music-tuner-label {
-                color: var(--hud-muted);
-                font-size: 8px;
-                font-weight: 600;
-                letter-spacing: 1px;
-                text-transform: uppercase;
-            }
-            .music-tuner-band {
-                color: var(--hud-amber);
-                font-size: 9px;
-                font-weight: 600;
-            }
-            .music-moods {
-                position: relative;
-                display: grid;
-                grid-template-columns: repeat(4, minmax(0, 1fr));
-                padding-bottom: 18px;
-            }
-            .music-moods::after {
-                content: "";
-                position: absolute;
-                right: 8px;
-                bottom: 8px;
-                left: 8px;
-                height: 1px;
-                background: rgba(247, 248, 245, 0.28);
-            }
-            .music-mood {
-                min-width: 0;
-                min-height: 44px;
-                padding: 3px 4px 6px;
-                background: transparent;
-                border: 0;
-                border-radius: 2px;
-                color: var(--hud-muted);
-                cursor: pointer;
-                font: inherit;
-                transition:
-                    color var(--hud-transition),
-                    background-color var(--hud-transition);
-            }
-            .music-mood:hover {
-                background: rgba(255, 193, 90, 0.1);
-                color: var(--hud-text);
-            }
-            .music-mood.is-selected {
-                color: var(--hud-amber);
-            }
-            .music-mood-name {
-                display: block;
-                overflow: hidden;
-                font-size: 10px;
-                font-weight: 700;
-                line-height: 1.1;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            }
-            .music-frequency {
-                display: block;
-                margin-top: 4px;
-                font-family: "JetBrains Mono", monospace;
-                font-size: 7px;
-                font-weight: 600;
-                letter-spacing: 0.2px;
-            }
-            .music-tuning-marker {
-                position: absolute;
-                z-index: 1;
-                bottom: 4px;
-                left: var(--music-tuner-position);
-                width: 8px;
-                height: 8px;
-                background: var(--hud-amber);
-                box-shadow: 0 0 6px rgba(255, 193, 90, 0.7);
-                transform: translateX(-50%) rotate(45deg);
-                transition: left 220ms cubic-bezier(0.25, 1, 0.5, 1);
-            }
-            .music-player-embed {
-                display: block;
-                width: 100%;
-                height: 152px;
-                margin-top: var(--space-2);
-                border: 0;
-                border-radius: 6px;
-                background: #171717;
-            }
-            .music-player-foot {
-                display: flex;
-                justify-content: flex-end;
-                margin-top: 7px;
-            }
-            .music-player-fallback {
-                color: var(--hud-muted);
-                font-family: "JetBrains Mono", monospace;
-                font-size: 10px;
-                font-weight: 600;
-                text-decoration-color: rgba(255, 193, 90, 0.7);
-                text-underline-offset: 3px;
-                transition: color var(--hud-transition);
-                user-select: text;
-            }
-            .music-player-fallback:hover {
-                color: var(--hud-amber);
-            }
-
-            @keyframes music-panel-in {
-                from {
-                    opacity: 0;
-                    transform: translateY(-4px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-
-            .top-controls {
-                display: flex;
-                gap: 1px;
-                padding: 4px;
-                background: rgba(8, 12, 15, 0.8);
-                -webkit-backdrop-filter: blur(14px) saturate(1.15);
-                backdrop-filter: blur(14px) saturate(1.15);
-                border: 1px solid rgba(255, 193, 90, 0.34);
-                border-radius: 4px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.34);
-                pointer-events: auto;
-            }
-
-            .hud-btn {
-                position: relative;
-                background: rgba(247, 248, 245, 0.045);
-                border: 0;
-                color: var(--hud-text);
-                width: 42px;
-                height: 42px;
-                min-height: 42px;
-                padding: 0;
-                border-radius: 2px;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition:
-                    color var(--hud-transition),
-                    background-color var(--hud-transition),
-                    transform var(--hud-transition);
-                outline: none;
-                user-select: none;
-            }
-            .hud-btn::after {
-                content: attr(data-key);
-                position: absolute;
-                right: 4px;
-                bottom: 3px;
-                color: rgba(247, 248, 245, 0.46);
-                font-family: "JetBrains Mono", monospace;
-                font-size: 7px;
-                font-weight: 600;
-                line-height: 1;
-            }
-            .hud-btn:focus,
-            .touch-btn:focus {
-                outline: none;
-            }
-            .hud-btn:focus-visible,
-            .touch-btn:focus-visible {
-                outline: 2px solid var(--hud-amber);
-                outline-offset: 2px;
-            }
-            .hud-btn:hover {
-                background: rgba(255, 193, 90, 0.14);
-                color: var(--hud-amber);
-            }
-            .hud-btn:active {
-                background: rgba(255, 193, 90, 0.22);
-                transform: translateY(1px);
-            }
-            .hud-icon {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-            }
-            .hud-btn .lucide {
-                width: 17px;
-                height: 17px;
-                stroke-width: 2.2px;
-            }
-
-            /* Bottom HUD section */
-            .bottom-bar {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-end;
-                gap: var(--space-6);
-            }
-
-            .speed-cluster {
-                display: flex;
-                align-items: baseline;
-                gap: 8px;
-                font-family: "JetBrains Mono", monospace;
-            }
-            .speed-val {
-                font-size: 56px;
-                font-weight: 700;
-                letter-spacing: -2px;
-                color: var(--hud-text);
-                font-variant-numeric: tabular-nums;
-                text-shadow: 0 3px 8px rgba(0, 0, 0, 0.68);
-                line-height: 1;
-            }
-            .speed-unit {
-                font-size: 14px;
-                color: var(--hud-muted);
-                text-transform: uppercase;
-                font-weight: 600;
-            }
-
-            .metrics-box {
-                background: var(--hud-surface);
-                border: 1px solid var(--hud-border);
-                border-radius: var(--hud-radius);
-                padding: 14px 20px;
-                display: flex;
-                gap: 24px;
-                align-items: center;
-                font-family: "JetBrains Mono", monospace;
-                box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
-                justify-self: center;
-            }
-            .metric-item {
-                display: flex;
-                flex-direction: column;
-            }
-            .metric-item + .metric-item {
-                padding-left: 24px;
-                border-left: 1px solid var(--hud-border);
-            }
-            .metric-label {
-                display: flex;
-                align-items: center;
-                gap: 5px;
-                font-size: 10px;
-                color: var(--hud-muted);
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            .metric-label .lucide {
-                width: 12px;
-                height: 12px;
-                stroke-width: 2px;
-                color: var(--hud-amber);
-            }
-            .metric-val {
-                font-size: 16px;
-                font-weight: 600;
-                color: var(--hud-amber);
-                margin-top: 2px;
-                font-variant-numeric: tabular-nums;
-            }
-
-            .controls-hint {
-                width: 224px;
-                padding: 0 var(--space-3) var(--space-3);
-                background: rgba(8, 12, 15, 0.78);
-                -webkit-backdrop-filter: blur(14px) saturate(1.15);
-                backdrop-filter: blur(14px) saturate(1.15);
-                border: 1px solid rgba(255, 193, 90, 0.38);
-                clip-path: polygon(
-                    0 0,
-                    calc(100% - 14px) 0,
-                    100% 14px,
-                    100% 100%,
-                    0 100%
-                );
-                color: var(--hud-muted);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.36);
-                display: grid;
-                grid-template-columns: 1fr;
-                justify-self: end;
-            }
-            .controls-hint::before {
-                content: "DRIVER CONTROLS";
-                margin: 0 calc(var(--space-3) * -1) var(--space-1);
-                padding: 9px var(--space-3) 8px;
-                background: rgba(255, 193, 90, 0.12);
-                border-bottom: 1px solid rgba(255, 193, 90, 0.3);
-                color: var(--hud-amber);
-                font-family: "JetBrains Mono", monospace;
-                font-size: 9px;
-                font-weight: 600;
-                letter-spacing: 1.35px;
-                line-height: 1;
-            }
-            .control-row {
-                display: grid;
-                grid-template-columns: 1fr auto;
-                align-items: center;
-                min-height: 29px;
-                gap: var(--space-3);
-                padding: 4px 2px;
-                border-bottom: 1px solid rgba(247, 248, 245, 0.09);
-                white-space: nowrap;
-            }
-            .control-row:nth-child(5) {
-                margin-top: 5px;
-                padding-top: 8px;
-                border-top: 1px solid rgba(255, 193, 90, 0.3);
-            }
-            .control-row:last-child {
-                border-bottom: 0;
-            }
-            .control-keys {
-                grid-column: 1;
-                display: flex;
-                align-items: center;
-                gap: 4px;
-            }
-            .control-action {
-                grid-column: 2;
-                color: #d8dddf;
-                font-family: "Outfit", sans-serif;
-                font-size: 11px;
-                font-weight: 600;
-                letter-spacing: 0.1px;
-            }
-            .key-badge {
-                display: inline-flex;
-                min-width: 24px;
-                height: 21px;
-                padding: 0 6px;
-                align-items: center;
-                justify-content: center;
-                background: rgba(247, 248, 245, 0.08);
-                border: 1px solid rgba(247, 248, 245, 0.28);
-                border-radius: 2px;
-                box-shadow: inset 0 -2px rgba(0, 0, 0, 0.32);
-                font-weight: 600;
-                color: var(--hud-text);
-                font-family: "JetBrains Mono", monospace;
-                font-size: 9px;
-                line-height: 1;
-                margin: 0;
-            }
-
-            /* Onscreen touch controls for mobile/tablet */
-            .touch-controls {
-                display: none;
-                position: absolute;
-                bottom: 24px;
-                left: 0;
-                right: 0;
-                padding: 0 24px;
-                justify-content: space-between;
-                pointer-events: none;
-                z-index: 20;
-            }
-            .touch-dpad,
-            .touch-pedals {
-                display: flex;
-                gap: 12px;
-                pointer-events: auto;
-            }
-            .touch-btn {
-                width: 58px;
-                height: 58px;
-                border-radius: 50%;
-                background: var(--hud-surface-raised);
-                border: 2px solid var(--hud-border-strong);
-                color: var(--hud-text);
-                font-size: 20px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                touch-action: none;
-                box-shadow:
-                    inset 0 0 0 3px rgba(0, 0, 0, 0.22),
-                    0 3px 8px rgba(0, 0, 0, 0.34);
-                transition:
-                    color var(--hud-transition),
-                    background-color var(--hud-transition),
-                    border-color var(--hud-transition),
-                    transform var(--hud-transition);
-            }
-            .touch-btn:active {
-                background: #493315;
-                border-color: var(--hud-amber);
-                color: var(--hud-amber);
-                transform: scale(0.94);
-            }
-
-            .touch-btn .lucide {
-                width: 26px;
-                height: 26px;
-                stroke-width: 2.5px;
-            }
-
-            .autopilot-indicator {
-                position: absolute;
-                top: 80px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: var(--hud-green-surface);
-                border: 1px solid var(--hud-green-border);
-                color: #effff3;
-                padding: 8px 20px;
-                border-radius: var(--hud-radius-sm);
-                font-size: 13px;
-                font-weight: 600;
-                letter-spacing: 1.5px;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                pointer-events: none;
-                z-index: 15;
-                box-shadow: 0 3px 8px rgba(0, 0, 0, 0.34);
-            }
-            .autopilot-indicator .lucide {
-                width: 16px;
-                height: 16px;
-            }
-            .hud-btn.autopilot-active {
-                background: rgba(69, 201, 107, 0.16);
-                color: #effff3;
-                box-shadow: inset 0 -2px var(--hud-green);
-            }
-            .hud-btn.autopilot-active:hover {
-                background: rgba(69, 201, 107, 0.24);
-                color: #ffffff;
-            }
-            .hud-btn.headlights-active {
-                background: rgba(255, 193, 90, 0.16);
-                color: var(--hud-amber);
-                box-shadow: inset 0 -2px var(--hud-amber);
-            }
-            .hud-btn.headlights-active:hover {
-                background: rgba(255, 193, 90, 0.24);
-                color: #ffe1ad;
-            }
-
-            @media (max-width: 1199px) {
-                .bottom-bar {
-                    gap: var(--space-3);
-                }
-            }
-
-            @media (max-width: 768px) {
-                .hud-overlay {
-                    padding: var(--space-4);
-                    padding-bottom: calc(
-                        env(safe-area-inset-bottom, 0px) + 110px
-                    );
-                }
-                .top-bar {
-                    gap: var(--space-3);
-                }
-                .game-brand {
-                    min-width: 132px;
-                    padding: var(--space-2) var(--space-3);
-                }
-                .music-player,
-                .music-player-toggle {
-                    width: 132px;
-                }
-                .music-player.is-expanded {
-                    position: fixed;
-                    right: var(--space-4);
-                    bottom: calc(
-                        env(safe-area-inset-bottom, 0px) + 174px
-                    );
-                    left: var(--space-4);
-                    width: auto;
-                    max-width: 420px;
-                    margin-inline: auto;
-                }
-                .music-player.is-expanded .music-player-toggle {
-                    width: 100%;
-                }
-                .music-player.is-expanded .music-player-panel {
-                    position: static;
-                    width: 100%;
-                    max-height: calc(
-                        100dvh - env(safe-area-inset-bottom, 0px) - 228px
-                    );
-                    margin-top: var(--space-1);
-                    overflow-y: auto;
-                    overscroll-behavior: contain;
-                }
-                .music-player-current {
-                    font-size: 7px;
-                }
-                .brand-title {
-                    font-size: 15px;
-                    letter-spacing: 0.9px;
-                }
-                .brand-sub {
-                    gap: var(--space-1);
-                    font-size: 7px;
-                    letter-spacing: 0.25px;
-                }
-                .brand-route {
-                    padding-left: var(--space-1);
-                }
-                .top-controls {
-                    display: grid;
-                    grid-template-columns: repeat(3, 44px);
-                    gap: 1px;
-                    padding: 3px;
-                }
-                .hud-btn {
-                    width: 44px;
-                    height: 44px;
-                    min-height: 44px;
-                }
-                .controls-hint {
-                    display: none;
-                }
-                .bottom-bar {
-                    gap: var(--space-4);
-                }
-                .speed-val {
-                    font-size: 40px;
-                }
-                .speed-unit {
-                    font-size: 11px;
-                }
-                .metrics-box {
-                    grid-row: 1;
-                    padding: var(--space-2) var(--space-3);
-                }
-                .metric-item:not(:first-child) {
-                    display: none;
-                }
-                .touch-controls {
-                    display: flex;
-                    bottom: calc(
-                        env(safe-area-inset-bottom, 0px) + var(--space-6)
-                    );
-                }
-                .autopilot-indicator {
-                    top: 124px;
-                }
-            }
-
-            @media (prefers-reduced-motion: reduce) {
-                .hud-btn,
-                .touch-btn,
-                .music-player-toggle,
-                .music-player-chevron,
-                .music-mood,
-                .music-tuning-marker,
-                .music-player-fallback {
-                    transition-duration: 0.01ms;
-                }
-                .music-player-panel {
-                    animation: none;
-                }
-            }
-        </style>
-    </head>
-    <body>
-        <div id="canvas-container"></div>
-
-        <div class="hud-overlay">
-            <div class="top-bar">
-                <div class="top-left-hud">
-                    <div class="game-brand">
-                        <div class="brand-title">DESI TRUCK</div>
-                        <div class="brand-sub">
-                            <span>HORN OK PLEASE</span>
-                            <span class="brand-route">NH 44</span>
-                        </div>
-                    </div>
-
-                    <section
-                        id="music-player"
-                        class="music-player"
-                        aria-label="DESI FM Spotify radio"
-                    >
-                        <button
-                            id="music-player-toggle"
-                            class="music-player-toggle"
-                            type="button"
-                            aria-expanded="false"
-                            aria-controls="music-player-panel"
-                            aria-label="Open DESI FM, Highway selected"
-                        >
-                            <span class="music-live-dot" aria-hidden="true"></span>
-                            <span class="music-player-name">DESI FM</span>
-                            <span
-                                id="music-player-current"
-                                class="music-player-current"
-                            >Highway</span>
-                            <span
-                                class="music-player-chevron"
-                                aria-hidden="true"
-                            ></span>
-                        </button>
-
-                        <div
-                            id="music-player-panel"
-                            class="music-player-panel"
-                            hidden
-                        >
-                            <div class="music-tuner-head" aria-hidden="true">
-                                <span class="music-tuner-label">Tune your route</span>
-                                <span class="music-tuner-band">FM / PLAYLIST</span>
-                            </div>
-
-                            <div
-                                class="music-moods"
-                                role="tablist"
-                                aria-label="Choose a music mood"
-                            >
-                                <button
-                                    class="music-mood is-selected"
-                                    type="button"
-                                    role="tab"
-                                    data-music-mood="highway"
-                                    aria-selected="true"
-                                    aria-controls="music-player-embed"
-                                >
-                                    <span class="music-mood-name">Highway</span>
-                                    <span class="music-frequency">88.1</span>
-                                </button>
-                                <button
-                                    class="music-mood"
-                                    type="button"
-                                    role="tab"
-                                    data-music-mood="long-drive"
-                                    aria-selected="false"
-                                    aria-controls="music-player-embed"
-                                    tabindex="-1"
-                                >
-                                    <span class="music-mood-name">Long drive</span>
-                                    <span class="music-frequency">93.5</span>
-                                </button>
-                                <button
-                                    class="music-mood"
-                                    type="button"
-                                    role="tab"
-                                    data-music-mood="punjabi"
-                                    aria-selected="false"
-                                    aria-controls="music-player-embed"
-                                    tabindex="-1"
-                                >
-                                    <span class="music-mood-name">Punjabi</span>
-                                    <span class="music-frequency">101.2</span>
-                                </button>
-                                <button
-                                    class="music-mood"
-                                    type="button"
-                                    role="tab"
-                                    data-music-mood="90s-bollywood"
-                                    aria-selected="false"
-                                    aria-controls="music-player-embed"
-                                    tabindex="-1"
-                                >
-                                    <span class="music-mood-name">90s Bollywood</span>
-                                    <span class="music-frequency">106.4</span>
-                                </button>
-                                <span
-                                    class="music-tuning-marker"
-                                    aria-hidden="true"
-                                ></span>
-                            </div>
-
-                            <iframe
-                                id="music-player-embed"
-                                class="music-player-embed"
-                                title="Spotify player: Highway"
-                                loading="lazy"
-                                allow="clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                                allowfullscreen
-                            ></iframe>
-
-                            <div class="music-player-foot">
-                                <a
-                                    id="music-player-fallback"
-                                    class="music-player-fallback"
-                                    href="https://open.spotify.com/playlist/1fZoi2cNS8YfDKp5qzukyZ"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >Open in Spotify ↗</a>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-
-                <div class="top-controls">
-                    <button
-                        id="btn-horn"
-                        class="hud-btn"
-                        data-key="H"
-                        tabindex="-1"
-                        title="Blow Pressure Horn (H)"
-                        aria-label="Blow Pressure Horn (H)"
-                    >
-                        <span class="hud-icon" id="horn-icon"
-                            ><i data-lucide="volume-2"></i
-                        ></span>
-                    </button>
-                    <button
-                        id="btn-theme"
-                        class="hud-btn"
-                        data-key="T"
-                        tabindex="-1"
-                        title="Toggle Lighting Preset (T)"
-                        aria-label="Toggle Lighting Preset (T)"
-                    >
-                        <span class="hud-icon" id="theme-icon"
-                            ><i data-lucide="sun"></i
-                        ></span>
-                    </button>
-                    <button
-                        id="btn-headlights"
-                        class="hud-btn headlights-active"
-                        data-key="L"
-                        tabindex="-1"
-                        title="Turn Off Headlights (L)"
-                        aria-label="Turn headlights off"
-                        aria-pressed="true"
-                    >
-                        <span class="hud-icon" id="headlights-icon"
-                            ><i data-lucide="lightbulb"></i
-                        ></span>
-                    </button>
-                    <button
-                        id="btn-camera"
-                        class="hud-btn"
-                        data-key="C"
-                        tabindex="-1"
-                        title="Switch Camera (C)"
-                        aria-label="Switch Camera (C)"
-                    >
-                        <span class="hud-icon" id="cam-icon"
-                            ><i data-lucide="camera"></i
-                        ></span>
-                    </button>
-                    <button
-                        id="btn-reset"
-                        class="hud-btn"
-                        data-key="R"
-                        tabindex="-1"
-                        title="Reset Truck Position (R)"
-                        aria-label="Reset Truck Position (R)"
-                    >
-                        <span class="hud-icon" id="reset-icon"
-                            ><i data-lucide="rotate-ccw"></i
-                        ></span>
-                    </button>
-                    <button
-                        id="btn-autopilot"
-                        class="hud-btn"
-                        data-key="P"
-                        tabindex="-1"
-                        title="Toggle Autopilot (P)"
-                        aria-label="Toggle Autopilot (P)"
-                        aria-pressed="false"
-                    >
-                        <span class="hud-icon" id="autopilot-btn-icon"
-                            ><i data-lucide="navigation"></i
-                        ></span>
-                    </button>
-                </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Desi Roads — Indian Highway Truck Simulator</title>
+    <meta name="description" content="Drive a decorated Indian truck across winding NH 44 in a cinematic low-poly highway simulator." />
+    <meta name="theme-color" content="#24251f" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Desi Roads" />
+    <meta property="og:title" content="Desi Roads — Indian Highway Truck Simulator" />
+    <meta property="og:description" content="Drive a decorated Indian truck across winding NH 44 in a cinematic low-poly highway simulator." />
+    <meta property="og:image" content="/desi-roads-og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Desi Roads poster showing a decorated marigold truck on a winding mountain highway at golden hour" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Desi Roads — Indian Highway Truck Simulator" />
+    <meta name="twitter:description" content="Drive a decorated Indian truck across winding NH 44 in a cinematic low-poly highway simulator." />
+    <meta name="twitter:image" content="/desi-roads-og.png" />
+    <meta name="twitter:image:alt" content="Desi Roads poster showing a decorated marigold truck on a winding mountain highway at golden hour" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --charcoal: #22241f;
+        --charcoal-deep: #151713;
+        --charcoal-raised: #303229;
+        --marigold: #ffc15a;
+        --cream: #fff3d3;
+        --cream-muted: #d8d0b8;
+        --teal: #4f9d91;
+        --line: rgba(255, 243, 211, 0.24);
+        --line-strong: rgba(255, 193, 90, 0.64);
+        --ease: 180ms cubic-bezier(0.25, 1, 0.5, 1);
+        --edge-x: clamp(14px, 2.2vw, 32px);
+        --edge-y: clamp(14px, 2.4vh, 24px);
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: var(--charcoal-deep); color: var(--cream); font-family: "Outfit", sans-serif; }
+      button, a { font: inherit; }
+      #canvas-container { position: absolute; inset: 0; z-index: 1; }
+      #canvas-container canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+      .hud-overlay { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: var(--edge-y) var(--edge-x); pointer-events: none; }
+      .top-bar, .bottom-bar { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+      .top-left-hud { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+      .game-brand { position: relative; display: flex; align-items: stretch; min-height: 48px; overflow: hidden; background: var(--marigold); color: #191811; border: 2px solid #2b2a21; border-radius: 2px; box-shadow: 0 4px 0 rgba(21, 23, 19, 0.8); }
+      .game-brand::before, .game-brand::after { content: ""; position: absolute; top: 7px; width: 4px; height: 4px; border-radius: 50%; background: rgba(25, 24, 17, 0.55); }
+      .game-brand::before { left: 7px; }
+      .game-brand::after { right: 7px; }
+      .brand-title { display: flex; align-items: center; padding: 0 17px 0 15px; font-size: 18px; font-weight: 800; letter-spacing: 0.08em; line-height: 1; white-space: nowrap; }
+      .brand-route { display: flex; align-items: center; margin: 6px; padding: 0 9px; background: var(--charcoal); color: var(--cream); border: 1px solid rgba(25, 24, 17, 0.5); border-radius: 2px; font-family: "JetBrains Mono", monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; white-space: nowrap; }
+      .music-player { --music-tuner-position: 12.5%; position: relative; width: 218px; color: var(--cream); pointer-events: auto; }
+      .music-player-toggle, .top-controls, .music-player-panel, .instrument-panel, .controls-hint { background: rgba(34, 36, 31, 0.95); border: 1px solid var(--line-strong); border-radius: 3px; box-shadow: 0 4px 0 rgba(12, 13, 11, 0.56); }
+      .music-player-toggle { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 38px; padding: 0 10px; color: var(--cream); cursor: pointer; transition: background-color var(--ease), border-color var(--ease); }
+      .music-player-toggle:hover { background: var(--charcoal-raised); border-color: var(--marigold); }
+      .music-live-dot { width: 7px; height: 7px; flex: 0 0 auto; background: var(--teal); border: 1px solid var(--cream); border-radius: 50%; }
+      .music-player-name { font-size: 10px; font-weight: 800; letter-spacing: 0.075em; white-space: nowrap; }
+      .music-player-current { min-width: 0; flex: 1; overflow: hidden; color: var(--cream-muted); font-family: "JetBrains Mono", monospace; font-size: 8px; font-weight: 600; text-align: right; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+      .music-player-chevron { width: 7px; height: 7px; flex: 0 0 auto; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform var(--ease); }
+      .music-player.is-expanded .music-player-chevron { transform: translateY(2px) rotate(225deg); }
+      .music-player-panel { position: absolute; z-index: 20; top: calc(100% + 7px); left: 0; width: 364px; padding: 12px; animation: radio-in var(--ease) both; }
+      .music-player-panel[hidden] { display: none; }
+      .music-tuner-head { display: flex; justify-content: space-between; margin-bottom: 9px; font: 600 8px "JetBrains Mono", monospace; letter-spacing: 0.09em; text-transform: uppercase; }
+      .music-tuner-label { color: var(--cream-muted); }
+      .music-tuner-band { color: var(--marigold); }
+      .music-moods { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-bottom: 16px; }
+      .music-moods::after { content: ""; position: absolute; right: 8px; bottom: 7px; left: 8px; height: 1px; background: var(--line); }
+      .music-mood { min-width: 0; min-height: 44px; padding: 4px; background: transparent; border: 0; border-radius: 2px; color: var(--cream-muted); cursor: pointer; transition: color var(--ease), background-color var(--ease); }
+      .music-mood:hover { background: rgba(255, 193, 90, 0.1); color: var(--cream); }
+      .music-mood.is-selected { color: var(--marigold); }
+      .music-mood-name { display: block; overflow: hidden; font-size: 10px; font-weight: 700; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+      .music-frequency { display: block; margin-top: 4px; font: 600 7px "JetBrains Mono", monospace; }
+      .music-tuning-marker { position: absolute; z-index: 1; bottom: 3px; left: var(--music-tuner-position); width: 8px; height: 8px; background: var(--marigold); transform: translateX(-50%) rotate(45deg); transition: left 220ms cubic-bezier(0.25, 1, 0.5, 1); }
+      .music-player-embed { display: block; width: 100%; height: 152px; margin-top: 8px; border: 0; border-radius: 3px; background: #171717; }
+      .music-player-foot { display: flex; justify-content: flex-end; margin-top: 7px; }
+      .music-player-fallback { color: var(--cream-muted); font: 600 9px "JetBrains Mono", monospace; text-decoration-color: var(--marigold); text-underline-offset: 3px; user-select: text; }
+      .music-player-fallback:hover { color: var(--marigold); }
+      .top-controls { display: flex; gap: 2px; padding: 4px; pointer-events: auto; }
+      .hud-btn { position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; background: rgba(255, 243, 211, 0.04); border: 0; border-radius: 2px; color: var(--cream); cursor: pointer; transition: color var(--ease), background-color var(--ease), transform var(--ease); }
+      .hud-btn::after { content: attr(data-key); position: absolute; right: 4px; bottom: 3px; color: rgba(255, 243, 211, 0.64); font: 600 7px "JetBrains Mono", monospace; line-height: 1; }
+      .hud-btn:hover { background: rgba(255, 193, 90, 0.13); color: var(--marigold); }
+      .hud-btn:active { background: rgba(255, 193, 90, 0.22); transform: translateY(1px); }
+      .hud-icon { display: inline-flex; align-items: center; justify-content: center; }
+      .hud-btn .lucide { width: 18px; height: 18px; stroke-width: 2.2px; }
+      .hud-btn.autopilot-active { background: rgba(79, 157, 145, 0.24); color: #dffff8; box-shadow: inset 0 -3px var(--teal); }
+      .hud-btn.headlights-active { background: rgba(255, 193, 90, 0.2); color: var(--marigold); box-shadow: inset 0 -3px var(--marigold); }
+      .autopilot-indicator { position: absolute; top: var(--edge-y); left: 50%; z-index: 15; display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 13px; background: #263b35; border: 1px solid #83b1a5; border-radius: 3px; color: #effffb; font: 700 10px "JetBrains Mono", monospace; letter-spacing: 0.08em; transform: translateX(-50%); box-shadow: 0 4px 0 rgba(12, 13, 11, 0.48); pointer-events: none; }
+      .autopilot-indicator .lucide { width: 15px; height: 15px; }
+      .bottom-bar { align-items: flex-end; }
+      .instrument-panel { position: relative; display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; min-width: 268px; overflow: hidden; pointer-events: none; }
+      .instrument-panel::before { content: ""; position: absolute; top: 0; right: 0; width: 42px; height: 4px; background: var(--marigold); }
+      .speed-cluster { grid-row: 1 / 3; display: flex; align-items: flex-end; gap: 6px; padding: 12px 16px 11px 14px; border-right: 1px solid var(--line); font-family: "JetBrains Mono", monospace; }
+      .speed-val { color: var(--cream); font-size: 49px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.04em; line-height: 0.86; }
+      .speed-unit { padding-bottom: 2px; color: var(--marigold); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; }
+      .route-strip, .telemetry-strip { display: flex; align-items: center; justify-content: space-between; gap: 15px; min-width: 145px; padding: 7px 11px; font-family: "JetBrains Mono", monospace; }
+      .route-strip { border-bottom: 1px solid var(--line); }
+      .metric { display: flex; flex-direction: column; gap: 1px; }
+      .metric-label { color: var(--cream-muted); font-size: 7px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+      .metric-value { color: var(--cream); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      #hud-nh { color: var(--marigold); }
+      #hud-fps { color: #b8d2a4; }
+      .controls-hint { width: 220px; padding: 0 11px 9px; color: var(--cream-muted); }
+      .controls-hint::before { content: "NH 44 · DRIVER LEDGER"; display: block; margin: 0 -11px 4px; padding: 8px 11px 7px; background: rgba(255, 193, 90, 0.12); border-bottom: 1px solid rgba(255, 193, 90, 0.3); color: var(--marigold); font: 700 8px "JetBrains Mono", monospace; letter-spacing: 0.1em; }
+      .control-row { display: grid; grid-template-columns: 1fr auto; align-items: center; min-height: 27px; gap: 10px; border-bottom: 1px solid rgba(255, 243, 211, 0.09); }
+      .control-row:last-child { border-bottom: 0; }
+      .control-keys { display: flex; gap: 4px; }
+      .control-action { color: var(--cream); font-size: 10px; font-weight: 600; }
+      .key-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 23px; height: 19px; padding: 0 5px; background: rgba(255, 243, 211, 0.08); border: 1px solid rgba(255, 243, 211, 0.3); border-radius: 2px; color: var(--cream); font: 600 8px "JetBrains Mono", monospace; }
+      .touch-controls { position: absolute; right: 0; bottom: 0; left: 0; z-index: 20; display: none; justify-content: space-between; padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 18px); pointer-events: none; }
+      .touch-dpad, .touch-pedals { display: flex; gap: 10px; pointer-events: auto; }
+      .touch-btn { position: relative; display: flex; align-items: center; justify-content: center; width: 62px; height: 62px; touch-action: none; background: var(--charcoal); border: 2px solid var(--marigold); border-radius: 4px; color: var(--cream); box-shadow: 0 5px 0 rgba(14, 15, 12, 0.7); transition: color var(--ease), background-color var(--ease), transform var(--ease); }
+      .touch-btn::after { content: attr(aria-label); position: absolute; bottom: 4px; font: 700 7px "JetBrains Mono", monospace; letter-spacing: 0.08em; text-transform: uppercase; }
+      .touch-btn .lucide { width: 25px; height: 25px; transform: translateY(-5px); }
+      .touch-btn:active { background: #553b18; color: var(--marigold); transform: translateY(2px); }
+      .hud-btn:focus { outline: none; }
+      .hud-btn:focus-visible, .touch-btn:focus-visible, .music-player-toggle:focus-visible, .music-mood:focus-visible, .music-player-fallback:focus-visible { outline: 3px solid var(--cream); outline-offset: 2px; }
+      @keyframes radio-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+      @media (max-width: 1024px) { .controls-hint { width: 196px; } .control-row { min-height: 25px; } }
+      @media (max-width: 768px) {
+        .hud-overlay { padding: 12px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); }
+        .top-bar { gap: 10px; }
+        .top-left-hud { gap: 6px; }
+        .game-brand { min-height: 42px; }
+        .brand-title { padding: 0 10px; font-size: 14px; letter-spacing: 0.06em; }
+        .brand-route { margin: 5px; padding: 0 7px; font-size: 8px; }
+        .music-player { width: 178px; }
+        .music-player-toggle { min-height: 34px; padding: 0 8px; }
+        .music-player-name { font-size: 9px; }
+        .music-player-current { font-size: 7px; }
+        .music-player.is-expanded { position: fixed; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); left: 12px; width: auto; max-width: 420px; margin-inline: auto; }
+        .music-player.is-expanded .music-player-panel { position: static; width: 100%; max-height: calc(100dvh - env(safe-area-inset-bottom, 0px) - 210px); margin-top: 6px; overflow-y: auto; overscroll-behavior: contain; }
+        .top-controls { display: grid; grid-template-columns: repeat(3, 44px); gap: 2px; padding: 3px; }
+        .controls-hint { display: none; }
+        .instrument-panel { min-width: 236px; }
+        .speed-cluster { padding: 10px 12px 9px 10px; }
+        .speed-val { font-size: 40px; }
+        .route-strip, .telemetry-strip { min-width: 126px; padding: 6px 8px; gap: 9px; }
+        .touch-controls { display: flex; }
+        .autopilot-indicator { top: 118px; bottom: auto; min-height: 34px; padding: 0 10px; font-size: 9px; }
+      }
+      @media (max-width: 480px) {
+        .game-brand { min-height: 38px; }
+        .brand-title { font-size: 12px; }
+        .brand-route { font-size: 7px; }
+        .music-player { width: 180px; }
+        .music-player-name { font-size: 8px; }
+        .music-player-current { display: none; }
+        .top-controls { grid-template-columns: repeat(3, 42px); }
+        .hud-btn { width: 42px; height: 42px; }
+        .instrument-panel { min-width: 220px; }
+        .speed-val { font-size: 36px; }
+        .route-strip, .telemetry-strip { min-width: 119px; }
+        .touch-btn { width: 58px; height: 58px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .hud-btn, .touch-btn, .music-player-toggle, .music-player-chevron, .music-mood, .music-tuning-marker { transition-duration: 0.01ms; }
+        .music-player-panel { animation: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas-container"></div>
+    <div class="hud-overlay">
+      <div class="top-bar">
+        <div class="top-left-hud">
+          <div class="game-brand" aria-label="Desi Roads, route NH 44"><div class="brand-title">DESI ROADS</div><div class="brand-route">NH 44</div></div>
+          <section id="music-player" class="music-player" aria-label="DESI ROADS RADIO Spotify radio">
+            <button id="music-player-toggle" class="music-player-toggle" type="button" aria-expanded="false" aria-controls="music-player-panel" aria-label="Open DESI ROADS RADIO, Highway selected">
+              <span class="music-live-dot" aria-hidden="true"></span><span class="music-player-name">DESI ROADS RADIO</span><span id="music-player-current" class="music-player-current">Highway</span><span class="music-player-chevron" aria-hidden="true"></span>
+            </button>
+            <div id="music-player-panel" class="music-player-panel" hidden>
+              <div class="music-tuner-head" aria-hidden="true"><span class="music-tuner-label">Tune your route</span><span class="music-tuner-band">FM / Playlist</span></div>
+              <div class="music-moods" role="tablist" aria-label="Choose a music mood">
+                <button class="music-mood is-selected" type="button" role="tab" data-music-mood="highway" aria-selected="true" aria-controls="music-player-embed"><span class="music-mood-name">Highway</span><span class="music-frequency">88.1</span></button>
+                <button class="music-mood" type="button" role="tab" data-music-mood="long-drive" aria-selected="false" aria-controls="music-player-embed" tabindex="-1"><span class="music-mood-name">Long drive</span><span class="music-frequency">93.5</span></button>
+                <button class="music-mood" type="button" role="tab" data-music-mood="punjabi" aria-selected="false" aria-controls="music-player-embed" tabindex="-1"><span class="music-mood-name">Punjabi</span><span class="music-frequency">101.2</span></button>
+                <button class="music-mood" type="button" role="tab" data-music-mood="90s-bollywood" aria-selected="false" aria-controls="music-player-embed" tabindex="-1"><span class="music-mood-name">90s Bollywood</span><span class="music-frequency">106.4</span></button>
+                <span class="music-tuning-marker" aria-hidden="true"></span>
+              </div>
+              <iframe id="music-player-embed" class="music-player-embed" title="Spotify player: Highway" loading="lazy" allow="clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+              <div class="music-player-foot"><a id="music-player-fallback" class="music-player-fallback" href="https://open.spotify.com/playlist/1fZoi2cNS8YfDKp5qzukyZ" target="_blank" rel="noopener noreferrer">Open in Spotify ↗</a></div>
             </div>
-
-            <!--<div
-                id="autopilot-indicator"
-                class="autopilot-indicator"
-                style="display: none"
-                <span class="hud-icon"><i data-lucide="navigation"></i></span>
-                AUTOPILOT ACTIVE <span class="key-badge">P</span> to disengage
-            </div>-->
-
-            <div class="bottom-bar">
-                <div class="speed-cluster">
-                    <span id="hud-speed" class="speed-val">0</span>
-                    <span class="speed-unit">KM/H</span>
-                </div>
-
-                <dl class="controls-hint" aria-label="Keyboard controls">
-                    <div class="control-row">
-                        <dt class="control-keys">
-                            <span class="key-badge">W</span
-                            ><span class="key-badge">↑</span>
-                        </dt>
-                        <dd class="control-action">Drive</dd>
-                    </div>
-                    <div class="control-row">
-                        <dt class="control-keys">
-                            <span class="key-badge">S</span
-                            ><span class="key-badge">↓</span>
-                        </dt>
-                        <dd class="control-action">Brake</dd>
-                    </div>
-                    <div class="control-row">
-                        <dt class="control-keys">
-                            <span class="key-badge">A/D</span
-                            ><span class="key-badge">←/→</span>
-                        </dt>
-                        <dd class="control-action">Steer</dd>
-                    </div>
-                    <div class="control-row">
-                        <dt class="control-keys">
-                            <span class="key-badge">SPACE</span>
-                        </dt>
-                        <dd class="control-action">Handbrake</dd>
-                    </div>
-                    <div class="control-row">
-                        <dt class="control-keys">
-                            <span class="key-badge">H</span>
-                        </dt>
-                        <dd class="control-action">Horn</dd>
-                    </div>
-                    <div class="control-row">
-                        <dt class="control-keys">
-                            <span class="key-badge">L</span>
-                        </dt>
-                        <dd class="control-action">Headlights</dd>
-                    </div>
-                    <div class="control-row">
-                        <dt class="control-keys">
-                            <span class="key-badge">C</span>
-                        </dt>
-                        <dd class="control-action">Camera</dd>
-                    </div>
-                    <div class="control-row">
-                        <dt class="control-keys">
-                            <span class="key-badge">R</span>
-                        </dt>
-                        <dd class="control-action">Reset</dd>
-                    </div>
-                    <div class="control-row">
-                        <dt class="control-keys">
-                            <span class="key-badge">P</span>
-                        </dt>
-                        <dd class="control-action">Autopilot</dd>
-                    </div>
-                </dl>
-            </div>
+          </section>
         </div>
-
-        <div class="touch-controls">
-            <div class="touch-dpad">
-                <button class="touch-btn" id="btn-left" tabindex="-1">
-                    <i data-lucide="chevron-left"></i>
-                </button>
-                <button class="touch-btn" id="btn-right" tabindex="-1">
-                    <i data-lucide="chevron-right"></i>
-                </button>
-            </div>
-            <div class="touch-pedals">
-                <button class="touch-btn" id="btn-brake" tabindex="-1">
-                    <i data-lucide="chevron-down"></i>
-                </button>
-                <button class="touch-btn" id="btn-gas" tabindex="-1">
-                    <i data-lucide="chevron-up"></i>
-                </button>
-            </div>
+        <div class="top-controls" aria-label="Simulator controls">
+          <button id="btn-horn" class="hud-btn" data-key="H" title="Blow Pressure Horn (H)" aria-label="Blow Pressure Horn (H)"><span class="hud-icon" id="horn-icon"><i data-lucide="volume-2"></i></span></button>
+          <button id="btn-theme" class="hud-btn" data-key="T" title="Toggle Lighting Preset (T)" aria-label="Toggle Lighting Preset (T)"><span class="hud-icon" id="theme-icon"><i data-lucide="sun"></i></span></button>
+          <button id="btn-headlights" class="hud-btn headlights-active" data-key="L" title="Turn Off Headlights (L)" aria-label="Turn headlights off" aria-pressed="true"><span class="hud-icon" id="headlights-icon"><i data-lucide="lightbulb"></i></span></button>
+          <button id="btn-camera" class="hud-btn" data-key="C" title="Switch Camera (C)" aria-label="Switch Camera (C)"><span class="hud-icon" id="cam-icon"><i data-lucide="camera"></i></span></button>
+          <button id="btn-reset" class="hud-btn" data-key="R" title="Reset Truck Position (R)" aria-label="Reset Truck Position (R)"><span class="hud-icon" id="reset-icon"><i data-lucide="rotate-ccw"></i></span></button>
+          <button id="btn-autopilot" class="hud-btn" data-key="P" title="Toggle Autopilot (P)" aria-label="Engage Autopilot" aria-pressed="false"><span class="hud-icon" id="autopilot-btn-icon"><i data-lucide="navigation"></i></span></button>
         </div>
-
-        <script type="module" src="/src/main.ts"></script>
-    </body>
+      </div>
+      <div id="autopilot-indicator" class="autopilot-indicator" style="display: none" role="status"><span class="hud-icon"><i data-lucide="navigation"></i></span><span>AUTOPILOT ACTIVE</span><span class="key-badge">P</span></div>
+      <div class="bottom-bar">
+        <section class="instrument-panel" aria-label="Driving telemetry">
+          <div class="speed-cluster"><span id="hud-speed" class="speed-val">0</span><span class="speed-unit">KM/H</span></div>
+          <div class="route-strip"><span class="metric"><span class="metric-label">Route</span><span id="hud-nh" class="metric-value">NH 44</span></span><span class="metric"><span class="metric-label">Distance</span><span id="hud-distance" class="metric-value">0.0 KM</span></span></div>
+          <div class="telemetry-strip"><span class="metric"><span class="metric-label">Status</span><span class="metric-value">ON ROAD</span></span><span class="metric"><span class="metric-label">FPS</span><span id="hud-fps" class="metric-value">60</span></span></div>
+        </section>
+        <dl class="controls-hint" aria-label="Keyboard controls">
+          <div class="control-row"><dt class="control-keys"><span class="key-badge">W</span><span class="key-badge">↑</span></dt><dd class="control-action">Drive</dd></div>
+          <div class="control-row"><dt class="control-keys"><span class="key-badge">S</span><span class="key-badge">↓</span></dt><dd class="control-action">Brake</dd></div>
+          <div class="control-row"><dt class="control-keys"><span class="key-badge">A/D</span><span class="key-badge">←/→</span></dt><dd class="control-action">Steer</dd></div>
+          <div class="control-row"><dt class="control-keys"><span class="key-badge">SPACE</span></dt><dd class="control-action">Handbrake</dd></div>
+          <div class="control-row"><dt class="control-keys"><span class="key-badge">H</span></dt><dd class="control-action">Horn</dd></div>
+          <div class="control-row"><dt class="control-keys"><span class="key-badge">L</span></dt><dd class="control-action">Headlights</dd></div>
+          <div class="control-row"><dt class="control-keys"><span class="key-badge">C</span></dt><dd class="control-action">Camera</dd></div>
+          <div class="control-row"><dt class="control-keys"><span class="key-badge">R</span></dt><dd class="control-action">Reset</dd></div>
+          <div class="control-row"><dt class="control-keys"><span class="key-badge">P</span></dt><dd class="control-action">Autopilot</dd></div>
+        </dl>
+      </div>
+    </div>
+    <div class="touch-controls" aria-label="Touch driving controls">
+      <div class="touch-dpad"><button class="touch-btn" id="btn-left" aria-label="Left" tabindex="-1"><i data-lucide="chevron-left"></i></button><button class="touch-btn" id="btn-right" aria-label="Right" tabindex="-1"><i data-lucide="chevron-right"></i></button></div>
+      <div class="touch-pedals"><button class="touch-btn" id="btn-brake" aria-label="Brake" tabindex="-1"><i data-lucide="chevron-down"></i></button><button class="touch-btn" id="btn-gas" aria-label="Drive" tabindex="-1"><i data-lucide="chevron-up"></i></button></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>

@@ -119,7 +119,7 @@ export class MusicPlayer {
     this.toggleButton.setAttribute('aria-expanded', expanded.toString());
     this.toggleButton.setAttribute(
       'aria-label',
-      `${expanded ? 'Close' : 'Open'} DESI FM, ${this.selectedMood.label} selected`
+      `${expanded ? 'Close' : 'Open'} DESI ROADS RADIO, ${this.selectedMood.label} selected`
     );
     this.panel.hidden = !expanded;
   }
@@ -139,7 +139,7 @@ export class MusicPlayer {
     this.fallbackLink.setAttribute('aria-label', `Open ${playlist.label} playlist in Spotify`);
     this.toggleButton.setAttribute(
       'aria-label',
-      `${this.root.classList.contains('is-expanded') ? 'Close' : 'Open'} DESI FM, ${playlist.label} selected`
+      `${this.root.classList.contains('is-expanded') ? 'Close' : 'Open'} DESI ROADS RADIO, ${playlist.label} selected`
     );
     const moodIndex = MUSIC_PLAYLISTS.indexOf(playlist);
     const tunerPosition = ((moodIndex + 0.5) / MUSIC_PLAYLISTS.length) * 100;

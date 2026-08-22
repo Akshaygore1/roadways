@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CONFIG } from '../config';
 import { RoadManager } from '../world/RoadManager';
 
 export interface AutopilotInput {
@@ -7,8 +8,6 @@ export interface AutopilotInput {
 }
 
 export class Autopilot {
-  private cruiseSpeedKmh: number = 60;
-
   /**
    * Compute autonomous throttle + steering based on
    * the car's position, forward vector, speed, and road data.
@@ -49,7 +48,7 @@ export class Autopilot {
     const steering = Math.max(-1, Math.min(1, rawSteer));
 
     // 4. Throttle: simple P-controller toward cruise speed
-    const speedError = this.cruiseSpeedKmh - carSpeedKmh;
+    const speedError = CONFIG.autopilot.cruiseSpeedKmh - carSpeedKmh;
     let throttle: number;
     if (speedError > 5) {
       throttle = Math.min(1.0, speedError * 0.05);

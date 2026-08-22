@@ -31,6 +31,9 @@ export interface GameConfig {
     suspensionDamping: number;
     gravity: number;
   };
+  autopilot: {
+    cruiseSpeedKmh: number;
+  };
   camera: {
     chaseDistance: number;
     chaseHeight: number;
@@ -143,6 +146,9 @@ export const CONFIG: GameConfig = {
     suspensionStiffness: 60.0,   // Spring constant for spring-damper model
     suspensionDamping: 18.0,     // Damping coefficient (smooth highway feel)
     gravity: 28.0
+  },
+  autopilot: {
+    cruiseSpeedKmh: 100
   },
   camera: {
     chaseDistance: 6.9,      // Closer to the truck tailgate

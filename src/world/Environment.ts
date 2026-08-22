@@ -2,14 +2,35 @@ import * as THREE from 'three';
 
 export type LightingTheme = 'golden' | 'monsoon' | 'night';
 
+const SKY_ASSET_PATHS: Record<LightingTheme, string> = {
+  golden: '/skies/sky-golden.webp?v=3',
+  monsoon: '/skies/sky-monsoon.webp',
+  night: '/skies/sky-night.webp'
+};
+
+const SKY_FALLBACK_COLORS: Record<LightingTheme, number> = {
+  golden: 0xf6d7aa,
+  monsoon: 0xb2c8c4,
+  night: 0x111a2e
+};
+
+const SKY_Y_ROTATIONS: Record<LightingTheme, number> = {
+  golden: Math.PI,
+  monsoon: 0,
+  night: 0
+};
+
 export class Environment {
   public scene: THREE.Scene;
   public dirLight: THREE.DirectionalLight;
   public hemiLight: THREE.HemisphereLight;
   public currentTheme: LightingTheme = 'golden';
 
+  private skyTextures: Partial<Record<LightingTheme, THREE.Texture>> = {};
+
   constructor(scene: THREE.Scene) {
     this.scene = scene;
+    this.loadSkyTextures();
 
     // Atmospheric Fog
     this.scene.fog = new THREE.FogExp2(0xf0cf9e, 0.0035);
@@ -51,9 +72,9 @@ export class Environment {
 
   public applyTheme(theme: LightingTheme): void {
     this.currentTheme = theme;
+    this.applySkyBackground(theme);
 
     if (theme === 'golden') {
-      this.scene.background = new THREE.Color(0xf6d7aa);
       (this.scene.fog as THREE.FogExp2).color.setHex(0xf4d3a4);
       (this.scene.fog as THREE.FogExp2).density = 0.0022;
 
@@ -65,7 +86,6 @@ export class Environment {
       this.hemiLight.groundColor.setHex(0x6b7754);
       this.hemiLight.intensity = 1.4;
     } else if (theme === 'monsoon') {
-      this.scene.background = new THREE.Color(0xb2c8c4);
       (this.scene.fog as THREE.FogExp2).color.setHex(0xb0c5c1);
       (this.scene.fog as THREE.FogExp2).density = 0.0028;
 
@@ -77,7 +97,6 @@ export class Environment {
       this.hemiLight.groundColor.setHex(0x4a6549);
       this.hemiLight.intensity = 1.6;
     } else if (theme === 'night') {
-      this.scene.background = new THREE.Color(0x111a2e);
       (this.scene.fog as THREE.FogExp2).color.setHex(0x111a2e);
       (this.scene.fog as THREE.FogExp2).density = 0.0018;
 
@@ -89,6 +108,28 @@ export class Environment {
       this.hemiLight.groundColor.setHex(0x1d2738);
       this.hemiLight.intensity = 1.2;
     }
+  }
+
+  private loadSkyTextures(): void {
+    const loader = new THREE.TextureLoader();
+
+    (Object.entries(SKY_ASSET_PATHS) as Array<[LightingTheme, string]>).forEach(([theme, path]) => {
+      loader.load(path, (texture) => {
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        this.skyTextures[theme] = texture;
+
+        if (this.currentTheme === theme) {
+          this.scene.background = texture;
+        }
+      });
+    });
+  }
+
+  private applySkyBackground(theme: LightingTheme): void {
+    this.scene.backgroundRotation.y = SKY_Y_ROTATIONS[theme];
+    this.scene.background = this.skyTextures[theme]
+      ?? new THREE.Color(SKY_FALLBACK_COLORS[theme]);
   }
 
   public update(targetPosition: THREE.Vector3): void {

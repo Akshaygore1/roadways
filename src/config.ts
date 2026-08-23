@@ -71,7 +71,7 @@ export interface RoadsideBusinessConfig {
   gradingTransition: number;
 }
 
-export type MusicMoodId = 'highway' | 'long-drive' | 'punjabi' | '90s-bollywood';
+export type MusicMoodId = 'highway' | '80s-bollywood' | 'punjabi' | '90s-bollywood';
 
 export interface MusicPlaylist {
   id: MusicMoodId;
@@ -88,10 +88,10 @@ export const MUSIC_PLAYLISTS: readonly MusicPlaylist[] = [
     spotifyPlaylistId: '1fZoi2cNS8YfDKp5qzukyZ'
   },
   {
-    id: 'long-drive',
-    label: 'Long drive',
+    id: '80s-bollywood',
+    label: '80s Bollywood',
     frequency: '93.5',
-    spotifyPlaylistId: '6hye6U1AOPw15cZdyI0rcm'
+    spotifyPlaylistId: '37i9dQZF1DX5rOEFf3Iycd'
   },
   {
     id: 'punjabi',

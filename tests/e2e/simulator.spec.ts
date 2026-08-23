@@ -227,14 +227,14 @@ test('navigates FM moods with arrow keys without moving the truck', async ({ pag
 
   const speed = page.locator('#hud-speed');
   const highway = page.locator('[data-music-mood="highway"]');
-  const longDrive = page.locator('[data-music-mood="long-drive"]');
+  const bollywood80s = page.locator('[data-music-mood="80s-bollywood"]');
 
   await page.locator('#music-player-toggle').click();
   await highway.focus();
   await page.keyboard.press('ArrowDown');
 
-  await expect(longDrive).toBeFocused();
-  await expect(longDrive).toHaveAttribute('aria-selected', 'true');
+  await expect(bollywood80s).toBeFocused();
+  await expect(bollywood80s).toHaveAttribute('aria-selected', 'true');
   const samplingStartedAt = Date.now();
   let maximumSpeed = 0;
   await expect.poll(async () => {

@@ -27,3 +27,7 @@ Use Playwright for browser-visible behavior and keep tests under `tests/e2e/`. A
 ## Commit & Pull Request Guidelines
 
 The short history uses concise, lowercase summaries (for example, `cleaned version`). Keep commit subjects imperative and focused, such as `fix off-road steering`. Pull requests should explain the user-visible change, identify touched systems, list verification performed, link any issue, and attach screenshots or a short capture for rendering or HUD changes. Do not commit `node_modules/`, local environment files, Playwright artifacts, or newly generated `dist/` assets.
+
+## Important
+
+only use e2e or browser automation when I tell you don't run without that

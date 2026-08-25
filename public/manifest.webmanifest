@@ -1,0 +1,25 @@
+{
+  "name": "Desi Roads — Indian Highway Truck Simulator",
+  "short_name": "Desi Roads",
+  "description": "Drive a decorated Indian truck across winding NH 44 in a cinematic low-poly 3D highway simulator with retro FM radio.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#151713",
+  "theme_color": "#24251f",
+  "categories": ["games", "entertainment", "simulation"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/desi-roads-og.png",
+      "sizes": "1200x630",
+      "type": "image/png"
+    }
+  ]
+}

@@ -47,6 +47,12 @@ export class FollowCamera {
     return this.mode;
   }
 
+  public setMode(mode: CameraMode): void {
+    this.manualOrbitActive = false;
+    this.endDrag();
+    this.mode = mode;
+  }
+
   public update(delta: number): void {
     const dt = Math.min(delta, 0.1);
     const carPos = this.car.position;

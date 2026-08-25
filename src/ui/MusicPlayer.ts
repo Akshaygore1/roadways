@@ -124,7 +124,11 @@ export class MusicPlayer {
     this.panel.hidden = !expanded;
   }
 
-  private selectMood(moodId: MusicMoodId): void {
+  public getSelectedMood(): MusicMoodId {
+    return this.selectedMood.id;
+  }
+
+  public selectMood(moodId: MusicMoodId): void {
     const playlist = MUSIC_PLAYLISTS.find((item) => item.id === moodId);
     if (!playlist) {
       return;

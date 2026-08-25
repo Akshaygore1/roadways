@@ -3,27 +3,148 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Desi Roads — Indian Highway Truck Simulator</title>
-    <meta name="description" content="Drive a decorated Indian truck across winding NH 44 in a cinematic low-poly highway simulator." />
+    <title>Desi Roads — 3D Indian Highway Truck Simulator & Retro Radio</title>
+    <meta name="description" content="Drive a decorated Indian truck across winding NH 44 in a cinematic 3D WebGL highway simulator with roadside dhabas and retro Bollywood/Punjabi FM radio." />
+    <meta name="keywords" content="Indian truck simulator, desi truck game, NH 44 driving simulator, 3D truck game online, Three.js WebGL game, truck wala game, highway driving simulator, chill driving game online, Indian truck art, Tata truck game, play truck simulator in browser, desi roads" />
+    <link rel="canonical" href="https://desiroads.space/" />
     <meta name="theme-color" content="#24251f" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="application-name" content="Desi Roads" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Desi Roads" />
+
+    <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Desi Roads" />
-    <meta property="og:title" content="Desi Roads — Indian Highway Truck Simulator" />
-    <meta property="og:description" content="Drive a decorated Indian truck across winding NH 44 in a cinematic low-poly highway simulator." />
-    <meta property="og:image" content="/desi-roads-og.png" />
+    <meta property="og:url" content="https://desiroads.space/" />
+    <meta property="og:title" content="Desi Roads — 3D Indian Highway Truck Simulator & Retro Radio" />
+    <meta property="og:description" content="Drive a decorated Indian truck across winding NH 44 in a cinematic 3D WebGL highway simulator with roadside dhabas and retro Bollywood/Punjabi FM radio." />
+    <meta property="og:image" content="https://desiroads.space/desi-roads-og.png" />
+    <meta property="og:image:secure_url" content="https://desiroads.space/desi-roads-og.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Desi Roads poster showing a decorated marigold truck on a winding mountain highway at golden hour" />
+
+    <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Desi Roads — Indian Highway Truck Simulator" />
-    <meta name="twitter:description" content="Drive a decorated Indian truck across winding NH 44 in a cinematic low-poly highway simulator." />
-    <meta name="twitter:image" content="/desi-roads-og.png" />
+    <meta name="twitter:site" content="@desiroads" />
+    <meta name="twitter:creator" content="@desiroads" />
+    <meta name="twitter:title" content="Desi Roads — 3D Indian Highway Truck Simulator & Retro Radio" />
+    <meta name="twitter:description" content="Drive a decorated Indian truck across winding NH 44 in a cinematic 3D WebGL highway simulator with roadside dhabas and retro Bollywood/Punjabi FM radio." />
+    <meta name="twitter:image" content="https://desiroads.space/desi-roads-og.png" />
     <meta name="twitter:image:alt" content="Desi Roads poster showing a decorated marigold truck on a winding mountain highway at golden hour" />
+
+    <!-- Google Fonts & Preconnects -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Structured Data (Schema.org VideoGame & FAQPage) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": ["VideoGame", "WebApplication"],
+          "@id": "https://desiroads.space/#game",
+          "name": "Desi Roads",
+          "alternateName": [
+            "Desi Roads — Indian Highway Truck Simulator",
+            "Desi Roads 3D Web Game",
+            "Indian Highway Simulator Online"
+          ],
+          "url": "https://desiroads.space/",
+          "description": "Drive a decorated Indian highway truck across winding procedural NH 44 routes with authentic spring-damper physics, roadside dhabas, pressure horns, and retro FM radio stations in 3D WebGL.",
+          "genre": [
+            "Simulation",
+            "Driving Game",
+            "Procedural Generation",
+            "Casual",
+            "Ambient Game"
+          ],
+          "gamePlatform": [
+            "Web Browser",
+            "Desktop Browser",
+            "Mobile Browser"
+          ],
+          "applicationCategory": "GameApplication",
+          "operatingSystem": "Any",
+          "inLanguage": ["en", "hi"],
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          },
+          "author": {
+            "@type": "Organization",
+            "name": "Desi Roads",
+            "url": "https://desiroads.space/"
+          },
+          "screenshot": "https://desiroads.space/desi-roads-og.png",
+          "featureList": [
+            "Procedural infinite Indian highway NH 44 generation",
+            "Authentic decorated Tata truck with custom spring-damper suspension",
+            "DESI ROADS RADIO with Spotify FM stations (Highway, 80s Bollywood, Punjabi, 90s Bollywood)",
+            "Dynamic lighting presets: Golden Hour, Monsoon Green, Night Cruise",
+            "Roadside dhabas, tea stalls, and charpai resting points",
+            "Autopilot cruising mode and pressure air horns",
+            "Zero download, instant web play with mobile touch controls"
+          ]
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://desiroads.space/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is Desi Roads?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Desi Roads is a free 3D browser-based Indian highway truck driving simulator. You drive a hand-decorated Indian Tata-style truck across an infinite procedural rendition of National Highway 44 (NH 44), complete with roadside dhabas, authentic suspension physics, pressure horns, and curated retro Bollywood and Punjabi FM radio stations."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I play Desi Roads on mobile without installing an app?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes! Desi Roads runs entirely in modern mobile and desktop web browsers (Chrome, Safari, Firefox, Edge) using WebGL and Three.js with responsive touch steering and pedal controls without requiring any downloads or installs."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What music stations are available on DESI ROADS RADIO?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "DESI ROADS RADIO features four curated mood channels: Highway FM (88.1), 80s Bollywood Classics (93.5), Punjabi Dhaba Beats (101.2), and 90s Bollywood Nostalgia (106.4), powered by integrated Spotify audio."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How do Autopilot and lighting presets work?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Press P (or tap the Navigation icon) to engage Autopilot, allowing your truck to cruise smoothly along the highway while you relax to the radio. Press T to switch between Golden Hour sunset, Monsoon Green rain atmosphere, and Night Cruise with functional headlights."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is Desi Roads free to play?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, Desi Roads is 100% free to play directly in your web browser with no ads or microtransactions."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
     <style>
       :root {
         --charcoal: #22241f;
@@ -88,8 +209,16 @@
       .hud-btn .lucide { width: 18px; height: 18px; stroke-width: 2.2px; }
       .hud-btn.autopilot-active { background: rgba(79, 157, 145, 0.24); color: #dffff8; box-shadow: inset 0 -3px var(--teal); }
       .hud-btn.headlights-active { background: rgba(255, 193, 90, 0.2); color: var(--marigold); box-shadow: inset 0 -3px var(--marigold); }
+      .hud-btn.truck-sound-muted { background: rgba(216, 208, 184, 0.06); color: var(--cream-muted); box-shadow: inset 0 -3px rgba(216, 208, 184, 0.45); }
+      .hud-btn.truck-sound-muted .lucide { opacity: 0.72; }
+      .hud-btn.guide-active { background: rgba(255, 193, 90, 0.24); color: var(--marigold); box-shadow: inset 0 -3px var(--marigold); }
       .autopilot-indicator { position: absolute; top: var(--edge-y); left: 50%; z-index: 15; display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 13px; background: #263b35; border: 1px solid #83b1a5; border-radius: 3px; color: #effffb; font: 700 10px "JetBrains Mono", monospace; letter-spacing: 0.08em; transform: translateX(-50%); box-shadow: 0 4px 0 rgba(12, 13, 11, 0.48); pointer-events: none; }
       .autopilot-indicator .lucide { width: 15px; height: 15px; }
+
+      /* Toast Notification */
+      .hud-toast { position: fixed; top: 18px; left: 50%; z-index: 100; display: flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 18px; background: var(--charcoal); color: var(--marigold); border: 2px solid var(--marigold); border-radius: 3px; font: 700 11px "JetBrains Mono", monospace; letter-spacing: 0.06em; text-transform: uppercase; box-shadow: 0 6px 0 rgba(12, 13, 11, 0.7); transform: translate(-50%, -60px); opacity: 0; pointer-events: none; transition: transform 220ms cubic-bezier(0.25, 1, 0.5, 1), opacity 220ms ease; }
+      .hud-toast.is-visible { transform: translate(-50%, 0); opacity: 1; }
+
       .bottom-bar { align-items: flex-end; }
       .instrument-panel { position: relative; display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; min-width: 268px; overflow: hidden; pointer-events: none; }
       .instrument-panel::before { content: ""; position: absolute; top: 0; right: 0; width: 42px; height: 4px; background: var(--marigold); }
@@ -116,10 +245,197 @@
       .touch-btn::after { content: attr(aria-label); position: absolute; bottom: 4px; font: 700 7px "JetBrains Mono", monospace; letter-spacing: 0.08em; text-transform: uppercase; }
       .touch-btn .lucide { width: 25px; height: 25px; transform: translateY(-5px); }
       .touch-btn:active { background: #553b18; color: var(--marigold); transform: translateY(2px); }
+
+      /* Semantic Crawlable Game Guide Drawer */
+      .game-guide-drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 50;
+        width: min(520px, 100vw);
+        background: rgba(21, 23, 19, 0.98);
+        border-left: 2px solid var(--line-strong);
+        box-shadow: -8px 0 24px rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        transform: translateX(100%);
+        transition: transform 260ms cubic-bezier(0.25, 1, 0.5, 1);
+        pointer-events: auto;
+        color: var(--cream);
+      }
+      .game-guide-drawer.is-open {
+        transform: translateX(0);
+      }
+      .guide-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        background: var(--charcoal);
+        border-bottom: 1px solid var(--line);
+      }
+      .guide-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .guide-badge {
+        padding: 2px 7px;
+        background: var(--marigold);
+        color: #191811;
+        font: 800 9px "JetBrains Mono", monospace;
+        letter-spacing: 0.08em;
+        border-radius: 2px;
+      }
+      .guide-header h2 {
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        color: var(--cream);
+        margin: 0;
+      }
+      .guide-close-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        background: rgba(255, 243, 211, 0.06);
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        color: var(--cream);
+        cursor: pointer;
+        transition: background-color var(--ease), color var(--ease);
+      }
+      .guide-close-btn:hover {
+        background: rgba(255, 193, 90, 0.2);
+        color: var(--marigold);
+      }
+      .guide-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        overscroll-behavior: contain;
+        user-select: text;
+      }
+      .guide-content h1 {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--marigold);
+        margin-bottom: 8px;
+        line-height: 1.2;
+      }
+      .guide-tagline {
+        font-size: 13px;
+        color: var(--cream-muted);
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+      .guide-section {
+        margin-bottom: 24px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(255, 243, 211, 0.12);
+      }
+      .guide-section:last-child {
+        border-bottom: 0;
+      }
+      .guide-section h2 {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--marigold);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .guide-section p {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--cream);
+        margin-bottom: 10px;
+      }
+      .guide-feature-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .guide-feature-list li {
+        font-size: 12px;
+        line-height: 1.4;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        color: var(--cream-muted);
+      }
+      .guide-feature-list li strong {
+        color: var(--cream);
+      }
+      .guide-faq details {
+        background: rgba(34, 36, 31, 0.6);
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        margin-bottom: 8px;
+        padding: 10px 12px;
+        cursor: pointer;
+        transition: background-color var(--ease);
+      }
+      .guide-faq details[open] {
+        background: rgba(34, 36, 31, 0.95);
+        border-color: var(--marigold);
+      }
+      .guide-faq summary {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--cream);
+        outline: none;
+      }
+      .guide-faq p {
+        font-size: 11.5px;
+        color: var(--cream-muted);
+        margin-top: 8px;
+        line-height: 1.5;
+      }
+      .guide-share-action {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .btn-primary-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 42px;
+        padding: 0 16px;
+        background: var(--marigold);
+        color: #191811;
+        border: 0;
+        border-radius: 3px;
+        font: 700 12px "JetBrains Mono", monospace;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background-color var(--ease), transform var(--ease);
+      }
+      .btn-primary-action:hover {
+        background: #ffd285;
+      }
+      .btn-primary-action:active {
+        transform: translateY(1px);
+      }
+
       .hud-btn:focus { outline: none; }
-      .hud-btn:focus-visible, .touch-btn:focus-visible, .music-player-toggle:focus-visible, .music-mood:focus-visible, .music-player-fallback:focus-visible { outline: 3px solid var(--cream); outline-offset: 2px; }
+      .hud-btn:focus-visible, .touch-btn:focus-visible, .music-player-toggle:focus-visible, .music-mood:focus-visible, .music-player-fallback:focus-visible, .guide-close-btn:focus-visible, .btn-primary-action:focus-visible { outline: 3px solid var(--cream); outline-offset: 2px; }
       @keyframes radio-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
       @media (max-width: 1024px) { .controls-hint { width: 196px; } .control-row { min-height: 25px; } }
+      @media (min-width: 769px) and (max-width: 900px) { .autopilot-indicator { top: calc(var(--edge-y) + 60px); } }
       @media (max-width: 768px) {
         .hud-overlay { padding: 12px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); }
         .top-bar { gap: 10px; }
@@ -133,14 +449,14 @@
         .music-player-current { font-size: 7px; }
         .music-player.is-expanded { position: fixed; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); left: 12px; width: auto; max-width: 420px; margin-inline: auto; }
         .music-player.is-expanded .music-player-panel { position: static; width: 100%; max-height: calc(100dvh - env(safe-area-inset-bottom, 0px) - 210px); margin-top: 6px; overflow-y: auto; overscroll-behavior: contain; }
-        .top-controls { display: grid; grid-template-columns: repeat(3, 44px); gap: 2px; padding: 3px; }
+        .top-controls { display: grid; grid-template-columns: repeat(5, 42px); gap: 2px; padding: 3px; }
         .controls-hint { display: none; }
         .instrument-panel { min-width: 236px; }
         .speed-cluster { padding: 10px 12px 9px 10px; }
         .speed-val { font-size: 40px; }
         .route-strip, .telemetry-strip { min-width: 126px; padding: 6px 8px; gap: 9px; }
         .touch-controls { display: flex; }
-        .autopilot-indicator { top: 118px; bottom: auto; min-height: 34px; padding: 0 10px; font-size: 9px; }
+        .autopilot-indicator { top: calc(var(--edge-y) + 148px); bottom: auto; min-height: 34px; padding: 0 10px; font-size: 9px; }
       }
       @media (max-width: 480px) {
         .game-brand { min-height: 38px; }
@@ -149,22 +465,24 @@
         .music-player { width: 180px; }
         .music-player-name { font-size: 8px; }
         .music-player-current { display: none; }
-        .top-controls { grid-template-columns: repeat(3, 42px); }
-        .hud-btn { width: 42px; height: 42px; }
+        .top-controls { grid-template-columns: repeat(5, 38px); }
+        .hud-btn { width: 38px; height: 38px; }
         .instrument-panel { min-width: 220px; }
         .speed-val { font-size: 36px; }
         .route-strip, .telemetry-strip { min-width: 119px; }
         .touch-btn { width: 58px; height: 58px; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .hud-btn, .touch-btn, .music-player-toggle, .music-player-chevron, .music-mood, .music-tuning-marker { transition-duration: 0.01ms; }
+        .hud-btn, .touch-btn, .music-player-toggle, .music-player-chevron, .music-mood, .music-tuning-marker, .game-guide-drawer, .hud-toast { transition-duration: 0.01ms; }
         .music-player-panel { animation: none; }
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-CXBfUIYy.js"></script>
+    <script type="module" crossorigin src="/assets/index-Dt7Fzopn.js"></script>
   </head>
   <body>
     <div id="canvas-container"></div>
+    <div id="hud-toast" class="hud-toast" role="status" aria-live="polite"></div>
+
     <div class="hud-overlay">
       <div class="top-bar">
         <div class="top-left-hud">
@@ -188,12 +506,15 @@
           </section>
         </div>
         <div class="top-controls" aria-label="Simulator controls">
-          <button id="btn-horn" class="hud-btn" data-key="H" title="Blow Pressure Horn (H)" aria-label="Blow Pressure Horn (H)"><span class="hud-icon" id="horn-icon"><i data-lucide="volume-2"></i></span></button>
+          <button id="btn-horn" class="hud-btn" data-key="H" title="Blow Pressure Horn (H)" aria-label="Blow Pressure Horn (H)"><span class="hud-icon" id="horn-icon"><i data-lucide="megaphone"></i></span></button>
+          <button id="btn-truck-sound" class="hud-btn truck-sound-active" data-key="M" title="Mute Truck Sound (M)" aria-label="Mute truck sound" aria-pressed="true"><span class="hud-icon" id="truck-sound-icon"><i data-lucide="volume-2"></i></span></button>
           <button id="btn-theme" class="hud-btn" data-key="T" title="Toggle Lighting Preset (T)" aria-label="Toggle Lighting Preset (T)"><span class="hud-icon" id="theme-icon"><i data-lucide="sun"></i></span></button>
           <button id="btn-headlights" class="hud-btn headlights-active" data-key="L" title="Turn Off Headlights (L)" aria-label="Turn headlights off" aria-pressed="true"><span class="hud-icon" id="headlights-icon"><i data-lucide="lightbulb"></i></span></button>
           <button id="btn-camera" class="hud-btn" data-key="C" title="Switch Camera (C)" aria-label="Switch Camera (C)"><span class="hud-icon" id="cam-icon"><i data-lucide="camera"></i></span></button>
           <button id="btn-reset" class="hud-btn" data-key="R" title="Reset Truck Position (R)" aria-label="Reset Truck Position (R)"><span class="hud-icon" id="reset-icon"><i data-lucide="rotate-ccw"></i></span></button>
           <button id="btn-autopilot" class="hud-btn" data-key="P" title="Toggle Autopilot (P)" aria-label="Engage Autopilot" aria-pressed="false"><span class="hud-icon" id="autopilot-btn-icon"><i data-lucide="navigation"></i></span></button>
+          <button id="btn-guide" class="hud-btn" data-key="I" title="Driver Ledger & Guide (I)" aria-label="Open Driver Ledger & Guide" aria-expanded="false" aria-controls="game-guide"><span class="hud-icon"><i data-lucide="book-open"></i></span></button>
+          <button id="btn-share" class="hud-btn" data-key="K" title="Share Trip Link (K)" aria-label="Copy and Share Trip Link"><span class="hud-icon"><i data-lucide="share-2"></i></span></button>
         </div>
       </div>
       <div id="autopilot-indicator" class="autopilot-indicator" style="display: none" role="status"><span class="hud-icon"><i data-lucide="navigation"></i></span><span>AUTOPILOT ACTIVE</span><span class="key-badge">P</span></div>
@@ -209,13 +530,100 @@
           <div class="control-row"><dt class="control-keys"><span class="key-badge">A/D</span><span class="key-badge">←/→</span></dt><dd class="control-action">Steer</dd></div>
           <div class="control-row"><dt class="control-keys"><span class="key-badge">SPACE</span></dt><dd class="control-action">Handbrake</dd></div>
           <div class="control-row"><dt class="control-keys"><span class="key-badge">H</span></dt><dd class="control-action">Horn</dd></div>
+          <div class="control-row"><dt class="control-keys"><span class="key-badge">M</span></dt><dd class="control-action">Truck Sound</dd></div>
           <div class="control-row"><dt class="control-keys"><span class="key-badge">L</span></dt><dd class="control-action">Headlights</dd></div>
           <div class="control-row"><dt class="control-keys"><span class="key-badge">C</span></dt><dd class="control-action">Camera</dd></div>
           <div class="control-row"><dt class="control-keys"><span class="key-badge">R</span></dt><dd class="control-action">Reset</dd></div>
           <div class="control-row"><dt class="control-keys"><span class="key-badge">P</span></dt><dd class="control-action">Autopilot</dd></div>
+          <div class="control-row"><dt class="control-keys"><span class="key-badge">I</span></dt><dd class="control-action">Guide</dd></div>
         </dl>
       </div>
     </div>
+
+    <!-- Semantic Crawlable Game Guide Drawer -->
+    <aside id="game-guide" class="game-guide-drawer" aria-label="Desi Roads Driver Guide and Lore" aria-hidden="true">
+      <div class="guide-header">
+        <div class="guide-title-wrap">
+          <span class="guide-badge">NH 44</span>
+          <h2>DRIVER'S HANDBOOK</h2>
+        </div>
+        <button id="btn-guide-close" class="guide-close-btn" type="button" aria-label="Close Handbook">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="guide-content">
+        <header>
+          <h1>Desi Roads — 3D Indian Highway Simulator</h1>
+          <p class="guide-tagline">Experience the freedom and nostalgia of driving an authentic hand-painted Indian heavy commercial truck across procedural stretches of National Highway 44.</p>
+        </header>
+
+        <section class="guide-section">
+          <h2><i data-lucide="sparkles"></i> The Spirit of NH 44 & Truck Art</h2>
+          <p>National Highway 44 (NH 44) is the longest north-south highway in India, traversing from Srinagar in the Himalayas all the way to Kanyakumari at the southern tip. Every kilometer tells a story of trade, culture, and life on the asphalt.</p>
+          <p>The truck in Desi Roads celebrates India's vibrant truck art heritage: from the iconic <em>"Horn OK Please"</em> and floral calligraphy to bright marigold tassels, evil-eye wardens (buri nazar wale tera muh kala), and decorated wooden chassis sideboards.</p>
+        </section>
+
+        <section class="guide-section">
+          <h2><i data-lucide="coffee"></i> Roadside Dhabas & Chai Stalls</h2>
+          <p>No Indian road trip is complete without the roadside dhaba. As you navigate the winding curves, you'll encounter procedural highway eateries, charpai seating, tandoors, and fresh steaming chai stalls.</p>
+        </section>
+
+        <section class="guide-section">
+          <h2><i data-lucide="radio"></i> DESI ROADS RADIO Stations</h2>
+          <ul class="guide-feature-list">
+            <li><strong>Highway FM (88.1):</strong> Lo-fi chill and ambient driving beats for peaceful highway cruising.</li>
+            <li><strong>80s Bollywood (93.5):</strong> Classic retro Hindi road-trip anthems, disco classics, and vintage melodies.</li>
+            <li><strong>Punjabi Dhaba (101.2):</strong> High-energy Bhangra, folk dhol beats, and modern Punjabi truck vibes.</li>
+            <li><strong>90s Nostalgia (106.4):</strong> Golden 90s monsoon melodies and highway favorites.</li>
+          </ul>
+        </section>
+
+        <section class="guide-section">
+          <h2><i data-lucide="navigation"></i> Driving Controls Manual</h2>
+          <ul class="guide-feature-list">
+            <li><strong>W / Up Arrow:</strong> Throttle & Acceleration (Heavy diesel engine torque)</li>
+            <li><strong>S / Down Arrow:</strong> Brake & Reverse</li>
+            <li><strong>A / D or Left / Right:</strong> Smooth Steering with speed-adaptive response</li>
+            <li><strong>Spacebar:</strong> Emergency Handbrake & Drift Friction</li>
+            <li><strong>H Key:</strong> Indian Triple-Tone Pressure Air Horn</li>
+            <li><strong>M Key:</strong> Toggle Truck Engine Audio / Mute</li>
+            <li><strong>T Key:</strong> Cycle Lighting Presets (Golden Hour, Monsoon Green, Night Cruise)</li>
+            <li><strong>L Key:</strong> Turn Headlights On / Off</li>
+            <li><strong>C Key:</strong> Switch Camera View (Third-Person Chase, Hood Cam, Drone Orbit)</li>
+            <li><strong>P Key:</strong> Engage Autopilot Highway Cruise Mode (100 km/h)</li>
+            <li><strong>R Key:</strong> Reset Truck Position</li>
+            <li><strong>I Key:</strong> Toggle Driver Handbook & Lore</li>
+          </ul>
+        </section>
+
+        <section class="guide-section guide-faq">
+          <h2><i data-lucide="help-circle"></i> Frequently Asked Questions</h2>
+          <details>
+            <summary>Can I play Desi Roads on mobile without installing an app?</summary>
+            <p>Yes! Desi Roads is an instant WebGL browser game designed for both mobile and desktop. On touch screens, intuitive steering and pedal buttons appear automatically.</p>
+          </details>
+          <details>
+            <summary>How does the procedural highway generation work?</summary>
+            <p>The road is generated using dynamic cubic spline chunks and simplex noise with elevation smoothing. As you drive forward, new highway segments and roadside dhabas are created ahead and recycled behind seamlessly.</p>
+          </details>
+          <details>
+            <summary>How do I share a specific trip setup with friends?</summary>
+            <p>Click the Share button in the top HUD or below to copy a custom URL containing your active lighting theme, radio station, and autopilot status.</p>
+          </details>
+        </section>
+
+        <section class="guide-section">
+          <h2><i data-lucide="share-2"></i> Share Your Trip Vibe</h2>
+          <p>Copy a link to your current trip with active lighting preset, radio station, and autopilot cruise settings.</p>
+          <div class="guide-share-action">
+            <button id="btn-drawer-share" class="btn-primary-action" type="button">
+              <i data-lucide="share-2"></i> Copy Trip Link
+            </button>
+          </div>
+        </section>
+      </div>
+    </aside>
+
     <div class="touch-controls" aria-label="Touch driving controls">
       <div class="touch-dpad"><button class="touch-btn" id="btn-left" aria-label="Left" tabindex="-1"><i data-lucide="chevron-left"></i></button><button class="touch-btn" id="btn-right" aria-label="Right" tabindex="-1"><i data-lucide="chevron-right"></i></button></div>
       <div class="touch-pedals"><button class="touch-btn" id="btn-brake" aria-label="Brake" tabindex="-1"><i data-lucide="chevron-down"></i></button><button class="touch-btn" id="btn-gas" aria-label="Drive" tabindex="-1"><i data-lucide="chevron-up"></i></button></div>

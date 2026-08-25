@@ -23,14 +23,30 @@ import {
   ChevronDown,
   ChevronUp,
   Lightbulb,
-  LightbulbOff
+  LightbulbOff,
+  BookOpen,
+  Share2,
+  X,
+  Copy,
+  Check,
+  Info
 } from 'lucide';
+
+export interface TripShareState {
+  theme: string;
+  radio: string;
+  autopilot: boolean;
+  camera: number;
+}
 
 export class HUD {
   private speedEl: HTMLElement | null;
   private distanceEl: HTMLElement | null;
   private fpsEl: HTMLElement | null;
   private autopilotEl: HTMLElement | null;
+  private guideEl: HTMLElement | null;
+  private toastEl: HTMLElement | null;
+  private toastTimeout: number | null = null;
 
   private frameCount: number = 0;
   private lastFpsTime: number = performance.now();
@@ -43,12 +59,15 @@ export class HUD {
     onAutopilotToggle: () => void,
     onHeadlightsToggle: () => boolean,
     onHorn?: () => void,
-    onTruckSoundToggle?: () => boolean
+    onTruckSoundToggle?: () => boolean,
+    getTripParams?: () => TripShareState
   ) {
     this.speedEl = document.getElementById('hud-speed');
     this.distanceEl = document.getElementById('hud-distance');
     this.fpsEl = document.getElementById('hud-fps');
     this.autopilotEl = document.getElementById('autopilot-indicator');
+    this.guideEl = document.getElementById('game-guide');
+    this.toastEl = document.getElementById('hud-toast');
 
     // Initialize all Lucide SVG icons
     this.refreshIcons();
@@ -114,6 +133,107 @@ export class HUD {
         }
       });
     }
+
+    const btnGuide = document.getElementById('btn-guide');
+    if (btnGuide) {
+      btnGuide.addEventListener('click', (e) => {
+        (e.currentTarget as HTMLElement)?.blur();
+        this.toggleGuide();
+      });
+    }
+
+    const btnGuideClose = document.getElementById('btn-guide-close');
+    if (btnGuideClose) {
+      btnGuideClose.addEventListener('click', () => {
+        this.toggleGuide(false);
+      });
+    }
+
+    const btnShare = document.getElementById('btn-share');
+    if (btnShare) {
+      btnShare.addEventListener('click', (e) => {
+        (e.currentTarget as HTMLElement)?.blur();
+        this.shareTrip(getTripParams);
+      });
+    }
+
+    const btnDrawerShare = document.getElementById('btn-drawer-share');
+    if (btnDrawerShare) {
+      btnDrawerShare.addEventListener('click', (e) => {
+        (e.currentTarget as HTMLElement)?.blur();
+        this.shareTrip(getTripParams);
+      });
+    }
+
+    // Dismiss guide on Esc key
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.isGuideOpen()) {
+        this.toggleGuide(false);
+      }
+    });
+  }
+
+  public isGuideOpen(): boolean {
+    return this.guideEl ? this.guideEl.classList.contains('is-open') : false;
+  }
+
+  public toggleGuide(force?: boolean): void {
+    if (!this.guideEl) return;
+    const shouldOpen = force !== undefined ? force : !this.isGuideOpen();
+    this.guideEl.classList.toggle('is-open', shouldOpen);
+    this.guideEl.setAttribute('aria-hidden', (!shouldOpen).toString());
+    const btnGuide = document.getElementById('btn-guide');
+    if (btnGuide) {
+      btnGuide.setAttribute('aria-expanded', shouldOpen.toString());
+      btnGuide.classList.toggle('guide-active', shouldOpen);
+    }
+  }
+
+  public shareTrip(getTripParams?: () => TripShareState): void {
+    const params = getTripParams?.();
+    const url = new URL('https://desiroads.space/');
+    if (params) {
+      if (params.theme && params.theme !== 'golden') {
+        url.searchParams.set('theme', params.theme);
+      }
+      if (params.radio && params.radio !== 'highway') {
+        url.searchParams.set('radio', params.radio);
+      }
+      if (params.autopilot) {
+        url.searchParams.set('autopilot', '1');
+      }
+      if (params.camera && params.camera !== 0) {
+        url.searchParams.set('cam', params.camera.toString());
+      }
+    }
+
+    const shareUrl = url.toString();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        this.showToast('Trip Link Copied to Clipboard!');
+      }).catch(() => {
+        this.showToast(`Trip Link: ${shareUrl}`);
+      });
+    } else {
+      this.showToast('Trip Link: ' + shareUrl);
+    }
+  }
+
+  public showToast(message: string): void {
+    if (!this.toastEl) return;
+    this.toastEl.textContent = message;
+    this.toastEl.classList.add('is-visible');
+
+    if (this.toastTimeout !== null) {
+      window.clearTimeout(this.toastTimeout);
+    }
+
+    this.toastTimeout = window.setTimeout(() => {
+      if (this.toastEl) {
+        this.toastEl.classList.remove('is-visible');
+      }
+      this.toastTimeout = null;
+    }, 2800);
   }
 
   public refreshIcons(): void {
@@ -139,7 +259,13 @@ export class HUD {
         ChevronDown,
         ChevronUp,
         Lightbulb,
-        LightbulbOff
+        LightbulbOff,
+        BookOpen,
+        Share2,
+        X,
+        Copy,
+        Check,
+        Info
       }
     });
   }

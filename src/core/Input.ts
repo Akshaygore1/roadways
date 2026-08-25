@@ -9,6 +9,8 @@ export class InputManager {
   public onAutopilotToggle?: () => void;
   public onHorn?: () => void;
   public onTruckSoundToggle?: () => void;
+  public onGuideToggle?: () => void;
+  public onShareTrip?: () => void;
 
   private keys: Record<string, boolean> = {};
 
@@ -45,6 +47,10 @@ export class InputManager {
         this.onHorn?.();
       } else if (e.code === 'KeyM' && !e.repeat) {
         this.onTruckSoundToggle?.();
+      } else if (e.code === 'KeyI') {
+        this.onGuideToggle?.();
+      } else if (e.code === 'KeyK') {
+        this.onShareTrip?.();
       }
     });
 

@@ -122,6 +122,7 @@
       .hud-btn:focus-visible, .touch-btn:focus-visible, .music-player-toggle:focus-visible, .music-mood:focus-visible, .music-player-fallback:focus-visible { outline: 3px solid var(--cream); outline-offset: 2px; }
       @keyframes radio-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
       @media (max-width: 1024px) { .controls-hint { width: 196px; } .control-row { min-height: 25px; } }
+      @media (min-width: 769px) and (max-width: 900px) { .autopilot-indicator { top: calc(var(--edge-y) + 60px); } }
       @media (max-width: 768px) {
         .hud-overlay { padding: 12px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); }
         .top-bar { gap: 10px; }

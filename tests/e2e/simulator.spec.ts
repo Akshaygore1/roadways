@@ -365,4 +365,18 @@ test('keeps HUD controls within representative viewports', async ({ page }, test
       expect(bounds.bottom!.y + bounds.bottom!.height).toBeLessThanOrEqual(bounds.touch!.y);
     }
   }
+
+  await page.setViewportSize({ width: 800, height: 800 });
+  await page.locator('#btn-autopilot').click();
+  await expect(page.locator('#autopilot-indicator')).toBeVisible();
+
+  const controlsDoNotOverlap = await page.evaluate(() => {
+    const toolbar = document.querySelector('.top-controls')?.getBoundingClientRect();
+    const indicator = document.querySelector('#autopilot-indicator')?.getBoundingClientRect();
+    if (!toolbar || !indicator) return false;
+
+    return indicator.bottom <= toolbar.top || indicator.top >= toolbar.bottom ||
+      indicator.right <= toolbar.left || indicator.left >= toolbar.right;
+  });
+  expect(controlsDoNotOverlap).toBe(true);
 });

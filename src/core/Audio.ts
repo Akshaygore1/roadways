@@ -12,8 +12,10 @@ import { CONFIG } from '../config';
 export class AudioManager {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  private truckSoundGain: GainNode | null = null;
   private isHornPlaying: boolean = false;
   private isEngineRunning: boolean = false;
+  private isTruckSoundEnabled: boolean = true;
 
   // Engine transmission state
   private currentPitch: number = 0.85;
@@ -52,6 +54,10 @@ export class AudioManager {
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.setValueAtTime(CONFIG.audio.masterVolume, this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
+
+      this.truckSoundGain = this.ctx.createGain();
+      this.truckSoundGain.gain.setValueAtTime(this.isTruckSoundEnabled ? 1 : 0, this.ctx.currentTime);
+      this.truckSoundGain.connect(this.masterGain);
 
       this.loadAllSamples();
     }
@@ -119,7 +125,7 @@ export class AudioManager {
    */
   public startEngine(): void {
     this.initContext();
-    if (!this.ctx || !this.masterGain || this.isEngineRunning) return;
+    if (!this.ctx || !this.truckSoundGain || this.isEngineRunning) return;
 
     const now = this.ctx.currentTime;
 
@@ -127,7 +133,7 @@ export class AudioManager {
     this.engineMasterGain = this.ctx.createGain();
     this.engineMasterGain.gain.setValueAtTime(0.001, now);
     this.engineMasterGain.gain.exponentialRampToValueAtTime(CONFIG.audio.engineVolume, now + 0.25);
-    this.engineMasterGain.connect(this.masterGain);
+    this.engineMasterGain.connect(this.truckSoundGain);
 
     // Dynamic Tone / Intake Lowpass Filter
     this.engineFilter = this.ctx.createBiquadFilter();
@@ -150,6 +156,21 @@ export class AudioManager {
     this.currentPitch = 0.85;
     this.targetPitch = 0.85;
     this.wasBrakingHard = false;
+  }
+
+  /**
+   * Toggles the engine and air-brake sound bus without affecting the horn.
+   */
+  public toggleTruckSound(): boolean {
+    this.isTruckSoundEnabled = !this.isTruckSoundEnabled;
+    this.initContext();
+
+    if (this.ctx && this.truckSoundGain) {
+      const targetGain = this.isTruckSoundEnabled ? 1 : 0;
+      this.truckSoundGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.025);
+    }
+
+    return this.isTruckSoundEnabled;
   }
 
   /**
@@ -213,7 +234,7 @@ export class AudioManager {
    * Plays the authentic pneumatic air brake release hiss.
    */
   public playAirBrakeHiss(intensity: number = 1.0): void {
-    if (!this.ctx || !this.masterGain) return;
+    if (!this.ctx || !this.truckSoundGain) return;
 
     const now = this.ctx.currentTime;
     if (now - this.lastBrakeReleaseTime < 0.8) return;
@@ -225,7 +246,7 @@ export class AudioManager {
       const gain = this.ctx.createGain();
       gain.gain.setValueAtTime(CONFIG.audio.airBrakeVolume * Math.min(1.0, intensity), now);
       source.connect(gain);
-      gain.connect(this.masterGain);
+      gain.connect(this.truckSoundGain);
       source.start(now);
     }
   }
@@ -314,4 +335,3 @@ export class AudioManager {
     }
   }
 }
-

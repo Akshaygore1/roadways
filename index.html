@@ -88,6 +88,8 @@
       .hud-btn .lucide { width: 18px; height: 18px; stroke-width: 2.2px; }
       .hud-btn.autopilot-active { background: rgba(79, 157, 145, 0.24); color: #dffff8; box-shadow: inset 0 -3px var(--teal); }
       .hud-btn.headlights-active { background: rgba(255, 193, 90, 0.2); color: var(--marigold); box-shadow: inset 0 -3px var(--marigold); }
+      .hud-btn.truck-sound-muted { background: rgba(216, 208, 184, 0.06); color: var(--cream-muted); box-shadow: inset 0 -3px rgba(216, 208, 184, 0.45); }
+      .hud-btn.truck-sound-muted .lucide { opacity: 0.72; }
       .autopilot-indicator { position: absolute; top: var(--edge-y); left: 50%; z-index: 15; display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 13px; background: #263b35; border: 1px solid #83b1a5; border-radius: 3px; color: #effffb; font: 700 10px "JetBrains Mono", monospace; letter-spacing: 0.08em; transform: translateX(-50%); box-shadow: 0 4px 0 rgba(12, 13, 11, 0.48); pointer-events: none; }
       .autopilot-indicator .lucide { width: 15px; height: 15px; }
       .bottom-bar { align-items: flex-end; }
@@ -140,7 +142,7 @@
         .speed-val { font-size: 40px; }
         .route-strip, .telemetry-strip { min-width: 126px; padding: 6px 8px; gap: 9px; }
         .touch-controls { display: flex; }
-        .autopilot-indicator { top: 118px; bottom: auto; min-height: 34px; padding: 0 10px; font-size: 9px; }
+        .autopilot-indicator { top: calc(var(--edge-y) + 148px); bottom: auto; min-height: 34px; padding: 0 10px; font-size: 9px; }
       }
       @media (max-width: 480px) {
         .game-brand { min-height: 38px; }
@@ -187,7 +189,8 @@
           </section>
         </div>
         <div class="top-controls" aria-label="Simulator controls">
-          <button id="btn-horn" class="hud-btn" data-key="H" title="Blow Pressure Horn (H)" aria-label="Blow Pressure Horn (H)"><span class="hud-icon" id="horn-icon"><i data-lucide="volume-2"></i></span></button>
+          <button id="btn-horn" class="hud-btn" data-key="H" title="Blow Pressure Horn (H)" aria-label="Blow Pressure Horn (H)"><span class="hud-icon" id="horn-icon"><i data-lucide="megaphone"></i></span></button>
+          <button id="btn-truck-sound" class="hud-btn truck-sound-active" data-key="M" title="Mute Truck Sound (M)" aria-label="Mute truck sound" aria-pressed="true"><span class="hud-icon" id="truck-sound-icon"><i data-lucide="volume-2"></i></span></button>
           <button id="btn-theme" class="hud-btn" data-key="T" title="Toggle Lighting Preset (T)" aria-label="Toggle Lighting Preset (T)"><span class="hud-icon" id="theme-icon"><i data-lucide="sun"></i></span></button>
           <button id="btn-headlights" class="hud-btn headlights-active" data-key="L" title="Turn Off Headlights (L)" aria-label="Turn headlights off" aria-pressed="true"><span class="hud-icon" id="headlights-icon"><i data-lucide="lightbulb"></i></span></button>
           <button id="btn-camera" class="hud-btn" data-key="C" title="Switch Camera (C)" aria-label="Switch Camera (C)"><span class="hud-icon" id="cam-icon"><i data-lucide="camera"></i></span></button>
@@ -208,6 +211,7 @@
           <div class="control-row"><dt class="control-keys"><span class="key-badge">A/D</span><span class="key-badge">←/→</span></dt><dd class="control-action">Steer</dd></div>
           <div class="control-row"><dt class="control-keys"><span class="key-badge">SPACE</span></dt><dd class="control-action">Handbrake</dd></div>
           <div class="control-row"><dt class="control-keys"><span class="key-badge">H</span></dt><dd class="control-action">Horn</dd></div>
+          <div class="control-row"><dt class="control-keys"><span class="key-badge">M</span></dt><dd class="control-action">Truck Sound</dd></div>
           <div class="control-row"><dt class="control-keys"><span class="key-badge">L</span></dt><dd class="control-action">Headlights</dd></div>
           <div class="control-row"><dt class="control-keys"><span class="key-badge">C</span></dt><dd class="control-action">Camera</dd></div>
           <div class="control-row"><dt class="control-keys"><span class="key-badge">R</span></dt><dd class="control-action">Reset</dd></div>

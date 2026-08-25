@@ -149,6 +149,37 @@ test('toggles headlights independently with the button and keyboard', async ({ p
   await expect(button).toHaveAttribute('aria-pressed', 'true');
 });
 
+test('toggles truck sound independently while keeping the horn available', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium-desktop', 'Keyboard state coverage runs once');
+
+  const truckSound = page.locator('#btn-truck-sound');
+  const horn = page.locator('#btn-horn');
+
+  await expect(horn.locator('[data-lucide="megaphone"]')).toBeVisible();
+  await expect(truckSound).toHaveAttribute('aria-pressed', 'true');
+  await expect(truckSound).toHaveAttribute('aria-label', 'Mute truck sound');
+  await expect(truckSound).toHaveClass(/truck-sound-active/);
+  await expect(truckSound.locator('[data-lucide="volume-2"]')).toBeVisible();
+
+  await truckSound.click();
+  await expect(truckSound).toHaveAttribute('aria-pressed', 'false');
+  await expect(truckSound).toHaveAttribute('aria-label', 'Unmute truck sound');
+  await expect(truckSound).toHaveClass(/truck-sound-muted/);
+  await expect(truckSound.locator('[data-lucide="volume-x"]')).toBeVisible();
+
+  await horn.click();
+  await expect(horn).toHaveAttribute('aria-label', 'Blow Pressure Horn (H)');
+
+  await page.keyboard.press('m');
+  await expect(truckSound).toHaveAttribute('aria-pressed', 'true');
+  await expect(truckSound.locator('[data-lucide="volume-2"]')).toBeVisible();
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyM', repeat: true }));
+  });
+  await expect(truckSound).toHaveAttribute('aria-pressed', 'true');
+});
+
 test('toggles autopilot with the button and keyboard', async ({ page }) => {
   const button = page.locator('#btn-autopilot');
   const indicator = page.locator('#autopilot-indicator');
@@ -288,9 +319,10 @@ test('shows the aligned keyboard guide on desktop and hides it on mobile', async
 
   const guide = page.locator('.controls-hint');
   await expect(guide).toBeVisible();
-  await expect(guide.locator('.control-row')).toHaveCount(9);
+  await expect(guide.locator('.control-row')).toHaveCount(10);
   await expect(guide).toContainText('Headlights');
   await expect(guide.locator('.control-row', { hasText: 'Headlights' }).locator('.key-badge')).toHaveText('L');
+  await expect(guide.locator('.control-row', { hasText: 'Truck Sound' }).locator('.key-badge')).toHaveText('M');
 
   await page.setViewportSize({ width: 412, height: 915 });
   await expect(guide).toBeHidden();

@@ -4,6 +4,8 @@ import { Environment, LightingTheme } from '../world/Environment';
 import {
   createIcons,
   Volume2,
+  VolumeX,
+  Megaphone,
   Sun,
   CloudRain,
   Moon,
@@ -40,7 +42,8 @@ export class HUD {
     onReset: () => void,
     onAutopilotToggle: () => void,
     onHeadlightsToggle: () => boolean,
-    onHorn?: () => void
+    onHorn?: () => void,
+    onTruckSoundToggle?: () => boolean
   ) {
     this.speedEl = document.getElementById('hud-speed');
     this.distanceEl = document.getElementById('hud-distance');
@@ -100,12 +103,25 @@ export class HUD {
         onHorn?.();
       });
     }
+
+    const btnTruckSound = document.getElementById('btn-truck-sound');
+    if (btnTruckSound) {
+      btnTruckSound.addEventListener('click', (e) => {
+        (e.currentTarget as HTMLElement)?.blur();
+        const enabled = onTruckSoundToggle?.();
+        if (enabled !== undefined) {
+          this.updateTruckSoundState(enabled);
+        }
+      });
+    }
   }
 
   public refreshIcons(): void {
     createIcons({
       icons: {
         Volume2,
+        VolumeX,
+        Megaphone,
         Sun,
         CloudRain,
         Moon,
@@ -183,6 +199,23 @@ export class HUD {
     }
     if (icon) {
       icon.innerHTML = `<i data-lucide="${enabled ? 'lightbulb' : 'lightbulb-off'}"></i>`;
+      this.refreshIcons();
+    }
+  }
+
+  public updateTruckSoundState(enabled: boolean): void {
+    const button = document.getElementById('btn-truck-sound');
+    const icon = document.getElementById('truck-sound-icon');
+
+    if (button) {
+      button.classList.toggle('truck-sound-active', enabled);
+      button.classList.toggle('truck-sound-muted', !enabled);
+      button.setAttribute('aria-pressed', enabled.toString());
+      button.setAttribute('aria-label', enabled ? 'Mute truck sound' : 'Unmute truck sound');
+      button.title = `${enabled ? 'Mute' : 'Unmute'} Truck Sound (M)`;
+    }
+    if (icon) {
+      icon.innerHTML = `<i data-lucide="${enabled ? 'volume-2' : 'volume-x'}"></i>`;
       this.refreshIcons();
     }
   }

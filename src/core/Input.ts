@@ -8,6 +8,7 @@ export class InputManager {
   public onHeadlightsToggle?: () => void;
   public onAutopilotToggle?: () => void;
   public onHorn?: () => void;
+  public onTruckSoundToggle?: () => void;
 
   private keys: Record<string, boolean> = {};
 
@@ -42,6 +43,8 @@ export class InputManager {
         this.onAutopilotToggle?.();
       } else if (e.code === 'KeyH') {
         this.onHorn?.();
+      } else if (e.code === 'KeyM' && !e.repeat) {
+        this.onTruckSoundToggle?.();
       }
     });
 

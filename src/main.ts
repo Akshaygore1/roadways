@@ -74,13 +74,18 @@ class Game {
       () => this.car.toggleHeadlights(),
       () => {
         this.audio.playIndianAirHorn();
-      }
+      },
+      () => this.audio.toggleTruckSound()
     );
     new MusicPlayer();
 
     // 5. Input key callbacks
     this.input.onHorn = () => {
       this.audio.playIndianAirHorn();
+    };
+
+    this.input.onTruckSoundToggle = () => {
+      this.hud.updateTruckSoundState(this.audio.toggleTruckSound());
     };
 
     this.input.onCameraToggle = () => {

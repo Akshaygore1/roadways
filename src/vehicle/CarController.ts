@@ -207,7 +207,7 @@ export class CarController {
     this.updateTransform();
 
     // 8. Update wheels animation
-    const wheelRadius = 0.5;
+    const wheelRadius = CONFIG.vehicle.wheelRadius;
     const spinDelta = (forwardSpeed * dt) / wheelRadius;
     this.model.updateWheelVisuals(this.steerAngle, spinDelta);
   }

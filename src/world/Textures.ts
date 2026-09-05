@@ -1,6 +1,25 @@
 import * as THREE from 'three';
 
 export class TextureGenerator {
+  /** Transparent painted lettering for the truck's outward-facing sign planes. */
+  public static createTruckLetteringTexture(text: string, color: string): { texture: THREE.CanvasTexture; aspect: number } {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    const font = 'bold 80px Arial, sans-serif';
+    ctx.font = font;
+    canvas.width = Math.ceil(ctx.measureText(text).width + 16);
+    canvas.height = 112;
+    ctx.font = font;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = 8;
+    return { texture, aspect: canvas.width / canvas.height };
+  }
+
   /**
    * Generates high-fidelity 2-lane Indian highway asphalt texture (1024x2048).
    * Features:

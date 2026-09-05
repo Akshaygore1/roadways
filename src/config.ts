@@ -1,4 +1,5 @@
 export interface GameConfig {
+  vehicle: { wheelRadius: number; wheelCenterHeight: number; halfTrack: number; frontAxleZ: number; middleAxleZ: number; rearAxleZ: number };
   road: {
     width: number;
     shoulderWidth: number;
@@ -108,6 +109,7 @@ export const MUSIC_PLAYLISTS: readonly MusicPlaylist[] = [
 ] as const;
 
 export const CONFIG: GameConfig = {
+  vehicle: { wheelRadius: .59, wheelCenterHeight: .62, halfTrack: 1.15, frontAxleZ: 2.5, middleAxleZ: -1.35, rearAxleZ: -2.5 },
   road: {
     width: 9.0,              // 2-lane Indian highway width
     shoulderWidth: 3.5,      // Red clay / gravel road verge
